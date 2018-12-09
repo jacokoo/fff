@@ -37,26 +37,19 @@ func (t *Tab) Clear() {
 	t.keyed.Clear()
 }
 
-// Update it
-func (t *Tab) Update(p *Point, data interface{}) *Point {
-	pp := t.keyed.UpdateXY(p)
-	return pp
+// MoveTo update location
+func (t *Tab) MoveTo(p *Point) *Point {
+	return t.keyed.MoveTo(p)
 }
 
-// UpdateXY update location
-func (t *Tab) UpdateXY(p *Point) *Point {
-	return t.keyed.UpdateXY(p)
-}
-
-// UpdateData update select index
-func (t *Tab) UpdateData(data interface{}) *Point {
-	i := data.(int)
-	if t.Current == i {
+// SwitchTo update select index
+func (t *Tab) SwitchTo(selected int) *Point {
+	if t.Current == selected {
 		return t.keyed.End
 	}
 
 	t1 := t.names.Drawers[t.Current].(*Text)
-	t2 := t.names.Drawers[i].(*Text)
+	t2 := t.names.Drawers[selected].(*Text)
 
 	t1.Clear()
 	t2.Clear()

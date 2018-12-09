@@ -12,11 +12,16 @@ type Text struct {
 	*Drawable
 }
 
+// NewText create a Text
+func NewText(p *Point, data string) *Text {
+	return &Text{data, NewDrawable(p)}
+}
+
 // Draw the text
 func (t *Text) Draw() *Point {
 	i := 0
 	for _, v := range t.Data {
-		termbox.SetCell(t.Start.X+i, t.Start.Y, v, t.fg, t.bg)
+		termbox.SetCell(t.Start.X+i, t.Start.Y, v, t.FG, t.BG)
 		i++
 	}
 	t.End.X = t.Start.X + i
@@ -24,32 +29,22 @@ func (t *Text) Draw() *Point {
 	return t.End
 }
 
-// Update it
-func (t *Text) Update(p *Point, data interface{}) *Point {
+// MoveTo update location
+func (t *Text) MoveTo(p *Point) *Point {
 	t.Start = p
-	t.Data = data.(string)
 	return t.Draw()
 }
 
-// UpdateXY is used to update the location of the text
-func (t *Text) UpdateXY(p *Point) *Point {
-	return t.Update(p, t.Data)
-}
-
-// UpdateData is only update the text
-func (t *Text) UpdateData(data interface{}) *Point {
-	return t.Update(t.Start, data)
-}
-
-// NewText create a Text
-func NewText(p *Point, data string) *Text {
-	return &Text{data, NewDrawable(p)}
+// SetValue set the value
+func (t *Text) SetValue(str string) *Text {
+	t.Data = str
+	return t
 }
 
 // Keyed is a container with key
 type Keyed struct {
 	Key  string
-	Item Drawer
+	item Drawer
 	*Drawable
 
 	start *Text
@@ -58,64 +53,45 @@ type Keyed struct {
 
 // NewKeyed create Keyed
 func NewKeyed(p *Point, key string, item Drawer) *Keyed {
-	return &Keyed{key, item, NewDrawable(p), nil, nil}
+	return &Keyed{key, item, NewDrawable(p), NewText(ZeroPoint, ""), NewText(ZeroPoint, "")}
 }
 
 // Draw it
 func (k *Keyed) Draw() *Point {
-	k.start = NewText(k.Start, fmt.Sprintf("%s[", k.Key))
+	k.start.Data = fmt.Sprintf("%s[", k.Key)
 	k.start.Color = ColorKeyword
-	e := k.start.Draw()
+	e := k.start.MoveTo(k.Start)
 
-	e = k.Item.UpdateXY(e.RightN(0))
-	k.end = NewText(e.RightN(0), "]")
+	e = k.item.MoveTo(e.RightN(0))
+	k.end.Data = "]"
 	k.end.Color = ColorKeyword
-
-	e = k.end.Draw()
-	k.End = e
-	return e
+	k.End = k.end.MoveTo(e.RightN(0))
+	return k.End
 }
 
-// Update it
-func (k *Keyed) Update(p *Point, data interface{}) *Point {
-	k.Clear()
+// MoveTo update location
+func (k *Keyed) MoveTo(p *Point) *Point {
 	k.Start = p
-	e := k.start.UpdateXY(p)
-	e = k.Item.Update(e.RightN(0), data)
-	e = k.end.UpdateXY(e.RightN(0))
-	k.End = e
-	return e
-}
-
-// UpdateXY update location
-func (k *Keyed) UpdateXY(p *Point) *Point {
-	k.Clear()
-	k.Start = p
-	e := k.start.UpdateXY(p)
-	e = k.Item.UpdateXY(e.RightN(0))
-	e = k.end.UpdateXY(e.RightN(0))
-	k.End = e
-	return e
-}
-
-// UpdateData update location
-func (k *Keyed) UpdateData(data interface{}) *Point {
-	k.Item.Clear()
-	k.end.Clear()
-
-	e := k.Item.UpdateData(data)
-	e = k.end.UpdateXY(e.RightN(0))
-	k.End = e
-	return e
+	e := k.start.MoveTo(p)
+	e = k.item.MoveTo(e.RightN(0))
+	k.End = k.end.MoveTo(e.RightN(0))
+	return k.End
 }
 
 // Label represent a label
 type Label struct {
 	*Keyed
+	text *Text
 }
 
 // NewLabel create Label
 func NewLabel(p *Point, key string, value string) *Label {
 	s := NewText(ZeroPoint, value)
-	return &Label{NewKeyed(p, key, s)}
+	return &Label{NewKeyed(p, key, s), s}
+}
+
+// SetValue set the value of label
+func (l *Label) SetValue(str string) *Label {
+	l.text.Data = str
+	return l
 }

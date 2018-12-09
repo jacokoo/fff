@@ -1,16 +1,14 @@
 package ui
 
 import (
-	"github.com/nsf/termbox-go"
+	termbox "github.com/nsf/termbox-go"
 )
 
 // Drawer is the base interface for ui components
 type Drawer interface {
 	Draw() *Point
 	Clear()
-	Update(p *Point, data interface{}) *Point
-	UpdateXY(p *Point) *Point
-	UpdateData(data interface{}) *Point
+	MoveTo(p *Point) *Point
 }
 
 // Point represent a point in screen
@@ -97,7 +95,7 @@ func (r Rect) Clear() {
 
 // Color represent the forecolor and background color of an point
 type Color struct {
-	fg, bg termbox.Attribute
+	FG, BG termbox.Attribute
 }
 
 var (
@@ -108,10 +106,10 @@ var (
 	ColorNormal = &Color{termbox.ColorDefault, termbox.ColorDefault}
 
 	// ColorKeyword is the keyword color
-	ColorKeyword = &Color{termbox.ColorBlue, termbox.ColorDefault}
+	ColorKeyword = &Color{termbox.ColorCyan, termbox.ColorDefault}
 
 	// ColorSelected is the color for selected item
-	ColorSelected = &Color{termbox.ColorBlack, termbox.ColorBlue}
+	ColorSelected = &Color{termbox.ColorWhite, termbox.ColorCyan}
 )
 
 // Drawable contains base properties for draw
@@ -136,24 +134,14 @@ type DrawerList struct {
 func (d *DrawerList) Draw() *Point {
 	p := d.Start
 	for _, v := range d.Drawers {
-		p = d.padding(v.UpdateXY(p))
+		p = d.padding(v.MoveTo(p))
 	}
 	d.End = p
 	return p
 }
 
-// UpdateXY update location
-func (d DrawerList) UpdateXY(p *Point) *Point {
+// MoveTo update location
+func (d DrawerList) MoveTo(p *Point) *Point {
 	d.Start = p
 	return d.Draw()
-}
-
-// Update it, data is ignored
-func (d DrawerList) Update(p *Point, data interface{}) *Point {
-	return d.UpdateXY(p)
-}
-
-// UpdateData data is ignored
-func (d DrawerList) UpdateData(data interface{}) *Point {
-	return d.End
 }

@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/nsf/termbox-go"
+	termbox "github.com/nsf/termbox-go"
 )
 
 const (
@@ -54,6 +54,10 @@ loop:
 
 			if ev.Ch == '3' {
 				cui <- uiChangeWd
+			}
+
+			if ev.Ch == '4' {
+				cui <- uiAddColumn
 			}
 		case termbox.EventResize:
 			termbox.Clear(cdf, cdf)
