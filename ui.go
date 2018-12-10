@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/jacokoo/fff/ui"
 	termbox "github.com/nsf/termbox-go"
@@ -16,13 +17,17 @@ const (
 	uiChangeSort
 )
 
+const (
+	columnWidth int = 30
+)
+
 var (
 	gui       = make(chan int)
 	uiTab     *ui.Tab
 	uiWd      *ui.Label
 	uiCurrent *ui.Label
 	uiColumns *ui.Columns
-	uiList    *ui.List
+	uiLists   []*ui.List
 )
 
 func handleUIEvent(ev int) {
@@ -30,25 +35,71 @@ func handleUIEvent(ev int) {
 	case uiChangeGroup:
 		uiTab.SwitchTo(2)
 	case uiChangeSort:
-		ns, hs := fileNames()
-		uiList.SetData(ns, hs)
+		ns, hs := fileNames(wo.currentColumn())
+		uiLists[len(uiLists)-1].SetData(ns, hs)
 	}
 
 	termbox.Flush()
 }
 
-func fileNames() ([]string, []int) {
-	col := wo.currentColumn()
+func formatSize(size int64) string {
+	unit := "B"
+	b := float32(size)
+
+	if b > 1024 {
+		unit = "K"
+		b = b / 1024
+	} else {
+		return fmt.Sprintf("%dB", size)
+	}
+
+	if b > 1024 {
+		unit = "M"
+		b = b / 1024
+	}
+
+	if b > 1024 {
+		unit = "G"
+		b = b / 1024
+	}
+	return fmt.Sprintf("%.2f%s", b, unit)
+}
+
+func fileNames(col *column) ([]string, []int) {
 	names := make([]string, len(col.files))
 	hints := make([]int, len(col.files))
 	for i, v := range col.files {
-		names[i] = fmt.Sprintf("  %s    %d", v.Name(), v.Size())
+		na := v.Name()
+		si := formatSize(v.Size())
+		re := columnWidth - len(si) - 4
+
+		if len(na) >= re {
+			na = na[0:len(na)-5] + "..."
+		}
+		re -= len(na)
+
+		names[i] = fmt.Sprintf("  %s%s%s  ", na, strings.Repeat(" ", re), si)
 		hints[i] = 0
 		if v.IsDir() {
 			hints[i] = 1
 		}
 	}
 	return names, hints
+}
+
+func uiInitColumns() {
+	uiColumns.RemoveAll()
+	uiLists = uiLists[0:]
+
+	for _, v := range wo.currentGroup().columns {
+		ii := uiColumns.Add(columnWidth)
+		p := uiColumns.StartAt(ii)
+
+		ns, hs := fileNames(v)
+		list := ui.NewList(p, 0, ns, hs)
+		list.Draw()
+		uiLists = append(uiLists, list)
+	}
 }
 
 func uiInit() {
@@ -73,12 +124,8 @@ func uiInit() {
 
 	uiColumns = ui.NewColumns(p, w, h-3)
 	uiColumns.Draw()
-	uiColumns.Add(30)
 
-	p = uiColumns.StartAt(0)
-	ns, hs := fileNames()
-	uiList = ui.NewList(p, 0, ns, hs)
-	uiList.Draw()
+	uiInitColumns()
 }
 
 func startEventLoop() {
@@ -92,4 +139,17 @@ func uiStart() {
 	uiInit()
 	termbox.Flush()
 	go startEventLoop()
+}
+
+// FileList is a list of file
+type FileList struct {
+	col      *column
+	ui       *ui.List
+	filter   *ui.Text
+	indicate *ui.Text
+}
+
+// NewFileList create file list
+func NewFileList(p *ui.Point, col column) *FileList {
+	return nil
 }

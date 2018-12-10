@@ -111,3 +111,19 @@ func (c *Columns) StartAt(index int) *Point {
 	p := c.columns[index].Start.RightN(0)
 	return p
 }
+
+// Remove the last column
+func (c *Columns) Remove() {
+	l := len(c.columns) - 1
+	c.columns[l].Clear()
+	c.columns = c.columns[:l]
+}
+
+// RemoveAll the columns
+func (c *Columns) RemoveAll() {
+	for _, v := range c.columns {
+		v.Clear()
+	}
+
+	c.columns = c.columns[:0]
+}
