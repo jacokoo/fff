@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/jacokoo/fff/ui"
 	termbox "github.com/nsf/termbox-go"
 )
@@ -11,76 +13,83 @@ const (
 	uiRemoveColumn
 	uiChangeSelect
 	uiChangeWd
+	uiChangeSort
 )
 
-type uiContainer struct {
-	tab     *ui.Tab
-	wd      *ui.Label
-	current *ui.Label
-	co      *ui.Columns
-}
+var (
+	gui       = make(chan int)
+	uiTab     *ui.Tab
+	uiWd      *ui.Label
+	uiCurrent *ui.Label
+	uiColumns *ui.Columns
+	uiList    *ui.List
+)
 
-func handleUIEvent(all *uiContainer, ev int) {
+func handleUIEvent(ev int) {
 	switch ev {
 	case uiChangeGroup:
-		all.tab.SwitchTo(2)
-	case uiChangeWd:
-		all.wd.Clear()
-		all.current.Clear()
-		e := all.wd.SetValue("Hello").Draw()
-		all.current.MoveTo(e.RightN(2))
-	case uiAddColumn:
-		all.co.Clear()
+		uiTab.SwitchTo(2)
+	case uiChangeSort:
+		ns, hs := fileNames()
+		uiList.SetData(ns, hs)
 	}
 
 	termbox.Flush()
 }
 
-func create() *uiContainer {
-	tab := ui.NewTab(&ui.Point{X: 0, Y: 1}, "TAB", []string{
-		" 1 ", " 2 ", " 3 ", " 4 ",
-	})
-	p := tab.Draw()
+func fileNames() ([]string, []int) {
+	col := wo.currentColumn()
+	names := make([]string, len(col.files))
+	hints := make([]int, len(col.files))
+	for i, v := range col.files {
+		names[i] = fmt.Sprintf("  %s    %d", v.Name(), v.Size())
+		hints[i] = 0
+		if v.IsDir() {
+			hints[i] = 1
+		}
+	}
+	return names, hints
+}
 
-	ww := ui.NewLabel(p.RightN(2), "WD", wd)
-	p = ww.Draw()
+func uiInit() {
+	groups := len(wo.groups)
+	names := make([]string, groups)
+	for i := 0; i < groups; i++ {
+		names[i] = fmt.Sprintf(" %d ", i)
+	}
 
-	cu := ui.NewLabel(p.RightN(2), "CURRENT", wo.currentDir())
-	p = cu.Draw()
+	uiTab = ui.NewTab(&ui.Point{X: 0, Y: 1}, "TAB", names)
+	p := uiTab.Draw()
+
+	uiWd = ui.NewLabel(p.RightN(2), "WD", replaceHome(wd))
+	p = uiWd.Draw()
+
+	uiCurrent = ui.NewLabel(p.RightN(2), "CURRENT", replaceHome(wo.currentDir()))
+	p = uiCurrent.Draw()
 
 	w, h := termbox.Size()
 	p = p.BottomN(2)
 	p.X = 0
 
-	co := ui.NewColumns(p, w, h-3)
-	co.Draw()
-	co.Add(30)
-	co.Add(40)
+	uiColumns = ui.NewColumns(p, w, h-3)
+	uiColumns.Draw()
+	uiColumns.Add(30)
 
-	cc := &ui.Color{FG: termbox.ColorBlack, BG: termbox.ColorWhite}
-
-	tx := ui.NewText(co.StartAt(0), "  HelloHelloHelloHello        ")
-	tx.Color = cc
-	tx.Draw()
-
-	ui.NewText(co.StartAt(1), "  Foo").Draw()
-
-	return &uiContainer{tab, ww, cu, co}
+	p = uiColumns.StartAt(0)
+	ns, hs := fileNames()
+	uiList = ui.NewList(p, 0, ns, hs)
+	uiList.Draw()
 }
 
-func startEventLoop(all *uiContainer) {
-loop:
+func startEventLoop() {
 	for {
-		select {
-		case ev := <-cui:
-			handleUIEvent(all, ev)
-		case <-cuiQuit:
-			break loop
-		}
+		handleUIEvent(<-gui)
+		termbox.Flush()
 	}
 }
 
-func start() {
-	all := create()
-	go startEventLoop(all)
+func uiStart() {
+	uiInit()
+	termbox.Flush()
+	go startEventLoop()
 }

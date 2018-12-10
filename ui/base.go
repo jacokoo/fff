@@ -109,7 +109,7 @@ var (
 	ColorKeyword = &Color{termbox.ColorCyan, termbox.ColorDefault}
 
 	// ColorSelected is the color for selected item
-	ColorSelected = &Color{termbox.ColorWhite, termbox.ColorCyan}
+	ColorSelected = &Color{termbox.ColorCyan | termbox.AttrBold, termbox.ColorDefault | termbox.AttrReverse}
 )
 
 // Drawable contains base properties for draw

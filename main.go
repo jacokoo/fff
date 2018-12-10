@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,11 +14,10 @@ const (
 )
 
 var (
-	wo      = newWorkspace()
-	home    = os.Getenv("HOME")
-	wd, _   = os.Getwd()
-	cui     = make(chan int)
-	cuiQuit = make(chan int)
+	wo    = newWorkspace()
+	home  = os.Getenv("HOME")
+	wd, _ = os.Getwd()
+	quit  = make(chan int)
 )
 
 func replaceHome(str string) string {
@@ -37,31 +37,19 @@ func main() {
 		home = "/root"
 	}
 
-	start()
-	termbox.Flush()
+	uiStart()
+	kbdStart()
 
 loop:
 	for {
 		switch ev := termbox.PollEvent(); ev.Type {
 		case termbox.EventKey:
-			if ev.Ch == 'q' {
-				cuiQuit <- 1
+			if isQuit(ev) {
+				fmt.Println("hello")
 				break loop
 			}
-			if ev.Ch == '2' {
-				cui <- uiChangeGroup
-			}
-
-			if ev.Ch == '3' {
-				cui <- uiChangeWd
-			}
-
-			if ev.Ch == '4' {
-				cui <- uiAddColumn
-			}
+			kbd <- ev
 		case termbox.EventResize:
-			termbox.Clear(cdf, cdf)
-			wo.drawTitle(0, 0)
 			termbox.Flush()
 		}
 	}
