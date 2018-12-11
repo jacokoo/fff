@@ -18,6 +18,7 @@ type cmd struct {
 	useKey   bool
 	key      termbox.Key
 	ch       rune
+	desc     string
 	action   func()
 	prefix   bool
 	children []*cmd
@@ -29,10 +30,23 @@ var (
 	kbd  = make(chan termbox.Event)
 
 	kbds = []*cmd{
-		{false, 0, 's', nil, true, []*cmd{
-			{false, 0, 'n', ActionSortByName, false, nil},
-			{false, 0, 'm', ActionSortByMtime, false, nil},
-			{false, 0, 's', ActionSortBySize, false, nil},
+		{false, 0, 's', "Prefix, Sort File", nil, true, []*cmd{
+			{false, 0, 'n', "[n]Sort By Name", ActionSortByName, false, nil},
+			{false, 0, 'm', "[m]Sort By MTime", ActionSortByMtime, false, nil},
+			{false, 0, 's', "[s]Sort By Size", ActionSortBySize, false, nil},
+		}},
+		{false, 0, '.', "Toggle show hidden files", ActionToggleHidden, false, nil},
+		{false, 0, 'j', "Move down", ActionMoveDown, false, nil},
+		{false, 0, 'k', "Move up", ActionMoveUp, false, nil},
+		{false, 0, 'l', "Open folder on right", ActionOpenFolderRight, false, nil},
+		{false, 0, 'h', "Go to parent folder", ActionCloseFolderRight, false, nil},
+		{false, 0, ',', "Shift column", ActionShift, false, nil},
+		{false, 0, '<', "Move to first item", ActionMoveToFirst, false, nil},
+		{false, 0, '>', "Move to last item", ActionMoveToLast, false, nil},
+		{true, termbox.KeyCtrlN, 0, "Move down", ActionMoveDown, false, nil},
+		{true, termbox.KeyCtrlP, 0, "Move up", ActionMoveUp, false, nil},
+		{false, 0, 'b', "Prefix, Bookmark manage", nil, true, []*cmd{
+			{false, 0, 'b', "[b]Toggle show bookmark", ActionToggleBookmark, false, nil},
 		}},
 	}
 
@@ -81,11 +95,33 @@ var (
 	ActionSortBySize = func() {
 		wo.sort(orderSize)
 	}
+	ActionToggleHidden = func() {
+		wo.toggleHidden()
+	}
 	ActionMoveDown = func() {
+		wo.move(1)
 	}
 	ActionMoveUp = func() {
+		wo.move(-1)
 	}
+	ActionMoveToFirst = func() {
+		wo.moveToFirst()
+	}
+	ActionMoveToLast = func() {
+		wo.moveToLast()
+	}
+
 	ActionOpenFolderRight = func() {
+		wo.openRight()
+	}
+	ActionCloseFolderRight = func() {
+		wo.closeRight()
+	}
+	ActionShift = func() {
+		wo.shift()
+	}
+	ActionToggleBookmark = func() {
+		wo.toggleBookmark()
 	}
 	ActionOpenFolderRoot = func() {
 	}

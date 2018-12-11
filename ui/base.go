@@ -98,6 +98,11 @@ type Color struct {
 	FG, BG termbox.Attribute
 }
 
+//Reverse the color
+func (c *Color) Reverse() *Color {
+	return &Color{c.FG, c.BG | termbox.AttrReverse}
+}
+
 var (
 	// ZeroPoint x = 0, y = 0
 	ZeroPoint = &Point{0, 0}

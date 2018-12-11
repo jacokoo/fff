@@ -32,6 +32,7 @@ func newColumn(p *Point, width, height int, corner string) *column {
 func (c *column) Draw() *Point {
 	c.corner.Draw()
 	p := c.vline.Draw()
+	p.Y--
 	c.End = p
 	return p
 }
@@ -93,17 +94,26 @@ func (c *Columns) MoveTo(p *Point) *Point {
 	return c.End
 }
 
-// Add a new column
-func (c *Columns) Add(width int) int {
+func (c *Columns) add(width int, corner string) int {
 	p := c.Start.Bottom()
 	if len(c.columns) > 0 {
 		p.X = c.columns[len(c.columns)-1].End.X + 1
 	}
 
-	co := newColumn(p, width, c.Height-1, singleCorner)
+	co := newColumn(p, width, c.Height-1, corner)
 	c.columns = append(c.columns, co)
 	co.Draw()
 	return len(c.columns) - 1
+}
+
+// Add a new column
+func (c *Columns) Add(width int) int {
+	return c.add(width, singleCorner)
+}
+
+// Add2 a new column with double line border
+func (c *Columns) Add2(width int) int {
+	return c.add(width, doubleCorner)
 }
 
 // StartAt returns the content start point

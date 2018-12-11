@@ -7,6 +7,7 @@ import (
 // List a list of string
 type List struct {
 	Selected   int
+	Height     int
 	Data       []string
 	colors     []*Color
 	items      []*Text
@@ -15,7 +16,7 @@ type List struct {
 }
 
 // NewList create a list
-func NewList(p *Point, selected int, items []string, colorHints []int) *List {
+func NewList(p *Point, selected, height int, items []string, colorHints []int) *List {
 	is := make([]*Text, len(items))
 	for i, v := range items {
 		is[i] = NewText(p.BottomN(i), v)
@@ -25,25 +26,45 @@ func NewList(p *Point, selected int, items []string, colorHints []int) *List {
 		{termbox.ColorDefault, termbox.ColorDefault},
 		{termbox.ColorCyan, termbox.ColorDefault},
 	}
-	return &List{selected, items, cs, is, colorHints, NewDrawable(p)}
+	return &List{selected, height, items, cs, is, colorHints, NewDrawable(p)}
 }
 
 // Draw it
 func (l *List) Draw() *Point {
 	var maxX = 0
-	for i, v := range l.items {
-		v.Color = l.colors[l.colorHints[i]]
-		if i == l.Selected {
-			v.Color = &Color{v.Color.FG, v.Color.BG | termbox.AttrReverse}
+	from, to := 0, l.Height
+	if to > len(l.items) {
+		to = len(l.items)
+	} else {
+		delta := l.Selected - l.Height/2
+		if delta > 0 {
+			to += delta
+			from += delta
 		}
-		p := v.Draw()
-		if p.X > maxX {
-			maxX = p.X
+
+		if to > len(l.items) {
+			delta = to - len(l.items)
+			to -= delta
+			from -= delta
 		}
 	}
 
-	l.End.X = maxX
-	l.End.Y = l.Start.Y + len(l.items)
+	j := 0
+	for i := from; i < to; i++ {
+		v := l.items[i]
+		v.Color = l.colors[l.colorHints[i]]
+		if i == l.Selected {
+			v.Color = v.Color.Reverse()
+		}
+		p := v.MoveTo(l.Start.BottomN(j))
+		if p.X > maxX {
+			maxX = p.X
+		}
+		j++
+	}
+
+	l.End.X = maxX - 1
+	l.End.Y = l.Start.Y + l.Height
 	return l.End
 }
 
@@ -59,18 +80,17 @@ func (l *List) MoveTo(p *Point) *Point {
 		}
 	}
 
-	l.End.X = maxX
-	l.End.Y = l.Start.Y + len(l.items)
+	l.End.X = maxX - 1
+	l.End.Y = l.Start.Y + l.Height
 	return l.End
 }
 
 // Select change the selected item to item
 func (l *List) Select(item int) {
-	old, new := l.items[l.Selected], l.items[item]
-	old.Color = ColorNormal
-	new.Color = ColorSelected
-	old.Draw()
-	new.Draw()
+	old := l.items[l.Selected]
+	old.Color = l.colors[l.colorHints[l.Selected]]
+	l.Selected = item
+	l.Draw()
 }
 
 // SetData update items
