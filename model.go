@@ -264,3 +264,32 @@ func (w *workspace) toggleBookmark() {
 	w.showBookmark = !w.showBookmark
 	gui <- uiToggleBookmark
 }
+
+func (w *workspace) changeGroup(idx int) {
+	w.group = idx
+	gui <- uiChangeGroup
+}
+
+func (w *workspace) openRoot(path string) {
+	fs, err := ioutil.ReadDir(path)
+	if err != nil {
+		message = "Can not read dir " + path
+		gui <- uiErrorMessage
+		return
+	}
+
+	gu := w.currentGroup()
+	gu.path = path
+
+	gu.columns = gu.columns[:1]
+	co := gu.columns[0]
+	co.origin = fs
+	co.path = path
+	co.update()
+
+	gui <- uiChangeRoot
+}
+
+func (w *workspace) jumpTo(colIdx, fileIdx int) {
+
+}

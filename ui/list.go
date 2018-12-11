@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"github.com/nsf/termbox-go"
+	termbox "github.com/nsf/termbox-go"
 )
 
 // List a list of string
@@ -12,6 +12,7 @@ type List struct {
 	colors     []*Color
 	items      []*Text
 	colorHints []int
+	from, to   int
 	*Drawable
 }
 
@@ -26,7 +27,7 @@ func NewList(p *Point, selected, height int, items []string, colorHints []int) *
 		{termbox.ColorDefault, termbox.ColorDefault},
 		{termbox.ColorCyan, termbox.ColorDefault},
 	}
-	return &List{selected, height, items, cs, is, colorHints, NewDrawable(p)}
+	return &List{selected, height, items, cs, is, colorHints, 0, 0, NewDrawable(p)}
 }
 
 // Draw it
@@ -49,6 +50,8 @@ func (l *List) Draw() *Point {
 		}
 	}
 
+	l.from = from
+	l.to = to
 	j := 0
 	for i := from; i < to; i++ {
 		v := l.items[i]
@@ -71,18 +74,7 @@ func (l *List) Draw() *Point {
 // MoveTo update location
 func (l *List) MoveTo(p *Point) *Point {
 	l.Start = p
-
-	var maxX = 0
-	for i, v := range l.items {
-		pp := v.MoveTo(p.BottomN(i))
-		if pp.X > maxX {
-			maxX = pp.X
-		}
-	}
-
-	l.End.X = maxX - 1
-	l.End.Y = l.Start.Y + l.Height
-	return l.End
+	return l.Draw()
 }
 
 // Select change the selected item to item
@@ -105,4 +97,18 @@ func (l *List) SetData(items []string, hints []int) {
 		l.items[i] = NewText(l.Start.BottomN(i), v)
 	}
 	l.Draw()
+}
+
+// ItemRange the items showed
+func (l *List) ItemRange() (int, int) {
+	return l.from, l.to
+}
+
+// ItemRects return the showed item rects
+func (l *List) ItemRects() []*Rect {
+	rs := make([]*Rect, 0)
+	for i := l.from; i < l.to; i++ {
+		rs = append(rs, l.items[i].Rect)
+	}
+	return rs
 }

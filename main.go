@@ -14,10 +14,11 @@ const (
 )
 
 var (
-	wo    = newWorkspace()
-	home  = os.Getenv("HOME")
-	wd, _ = os.Getwd()
-	quit  = make(chan int)
+	wo      = newWorkspace()
+	home    = os.Getenv("HOME")
+	wd, _   = os.Getwd()
+	quit    = make(chan int)
+	message string
 )
 
 func replaceHome(str string) string {
