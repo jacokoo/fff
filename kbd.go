@@ -12,6 +12,7 @@ const (
 	ModeNormal Mode = iota
 	ModeJump
 	ModeInput
+	ModeDisabled
 )
 
 type cmd struct {
@@ -48,6 +49,12 @@ var (
 		{false, 0, 'b', "Prefix, Bookmark manage", nil, true, []*cmd{
 			{false, 0, 'b', "[b]Toggle show bookmark", ActionToggleBookmark, false, nil},
 		}},
+		{false, 0, 'w', "Enter jump mode", ActionEnterJump, false, nil},
+
+		// {false, 0, '1', "Change group to 1", ActionChangeGroup0, false, nil},
+		// {false, 0, '2', "Change group to 2", ActionChangeGroup1, false, nil},
+		// {false, 0, '3', "Change group to 3", ActionChangeGroup2, false, nil},
+		// {false, 0, '4', "Change group to 3", ActionChangeGroup3, false, nil},
 	}
 
 	currentKbds = kbds
@@ -124,6 +131,21 @@ var (
 		wo.toggleBookmark()
 	}
 	ActionOpenFolderRoot = func() {
+	}
+	ActionEnterJump = func() {
+		enterJumpMode()
+	}
+	ActionChangeGroup0 = func() {
+		wo.changeGroup(0)
+	}
+	ActionChangeGroup1 = func() {
+		wo.changeGroup(1)
+	}
+	ActionChangeGroup2 = func() {
+		wo.changeGroup(2)
+	}
+	ActionChangeGroup3 = func() {
+		wo.changeGroup(3)
 	}
 )
 

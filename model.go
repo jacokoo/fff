@@ -267,6 +267,9 @@ func (w *workspace) toggleBookmark() {
 
 func (w *workspace) changeGroup(idx int) {
 	w.group = idx
+	if w.groups[idx] == nil {
+		w.groups[idx] = newGroup(wd)
+	}
 	gui <- uiChangeGroup
 }
 
@@ -290,6 +293,6 @@ func (w *workspace) openRoot(path string) {
 	gui <- uiChangeRoot
 }
 
-func (w *workspace) jumpTo(colIdx, fileIdx int) {
-
+func (w *workspace) jumpTo(colIdx, fileIdx int) bool {
+	return false
 }

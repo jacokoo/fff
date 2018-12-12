@@ -23,6 +23,7 @@ const (
 	uiToggleBookmark
 	uiErrorMessage
 	uiChangeRoot
+	uiJumpRefresh
 )
 
 const (
@@ -39,6 +40,7 @@ var (
 	uiLists          []*FileList
 	uiStatus         *ui.Status
 	uiBookmark       *bookmark
+	uiJumpItems      []*ui.Text
 )
 
 func handleUIEvent(ev int) {
@@ -46,7 +48,10 @@ func handleUIEvent(ev int) {
 	case uiErrorMessage:
 		uiStatus.Set(message)
 	case uiChangeGroup:
-		uiTab.SwitchTo(2)
+		uiTab.SwitchTo(wo.group)
+		uiLists = make([]*FileList, 0)
+		uiInitColumns()
+		updateCurrent()
 	case uiColumnContentChange:
 		uiLists[len(uiLists)-1].update()
 	case uiChangeSelect:
@@ -75,9 +80,29 @@ func handleUIEvent(ev int) {
 		fallthrough
 	case uiToggleBookmark:
 		redrawColumns()
+	case uiJumpRefresh:
+		refreshJumpItems()
 	}
+}
 
-	termbox.Flush()
+func refreshJumpItems() {
+	if uiJumpItems != nil {
+		for _, v := range uiJumpItems {
+			v.Clear()
+		}
+		uiJumpItems = nil
+	}
+	color := &ui.Color{FG: termbox.ColorRed, BG: termbox.ColorDefault | termbox.AttrReverse}
+
+	for _, v := range jumpItems {
+		if len(v.key) == 0 {
+			continue
+		}
+		ji := ui.NewText(v.point, string(v.key))
+		ji.Color = color
+		ji.Draw()
+		uiJumpItems = append(uiJumpItems, ji)
+	}
 }
 
 func redrawColumns() {

@@ -50,6 +50,7 @@ func (t *Tab) SwitchTo(selected int) *Point {
 
 	t1 := t.names.Drawers[t.Current].(*Text)
 	t2 := t.names.Drawers[selected].(*Text)
+	t.Current = selected
 
 	t1.Clear()
 	t2.Clear()
