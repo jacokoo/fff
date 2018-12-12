@@ -26,6 +26,51 @@ type cmd struct {
 }
 
 var (
+	keyMap = map[termbox.Key]string{
+		termbox.KeyArrowDown:  "down",
+		termbox.KeyArrowUp:    "up",
+		termbox.KeyArrowRight: "right",
+		termbox.KeyArrowLeft:  "left",
+		termbox.KeyTab:        "tab",
+		termbox.KeySpace:      "space",
+		termbox.KeyEnter:      "enter",
+		termbox.KeyEsc:        "esc",
+		termbox.KeyBackspace:  "backspace",
+		termbox.KeyBackspace2: "backspace",
+		termbox.KeyHome:       "home",
+		termbox.KeyEnd:        "end",
+		termbox.KeyPgdn:       "pagedown",
+		termbox.KeyPgup:       "pageup",
+		termbox.KeyInsert:     "insert",
+		termbox.KeyDelete:     "delete",
+
+		termbox.KeyCtrlBackslash:  "ctrl-\\",
+		termbox.KeyCtrlRsqBracket: "ctrl-]",
+		termbox.KeyCtrlA:          "ctrl-a",
+		termbox.KeyCtrlB:          "ctrl-b",
+		termbox.KeyCtrlC:          "ctrl-c",
+		termbox.KeyCtrlD:          "ctrl-d",
+		termbox.KeyCtrlE:          "ctrl-e",
+		termbox.KeyCtrlF:          "ctrl-f",
+		termbox.KeyCtrlG:          "ctrl-g",
+		termbox.KeyCtrlJ:          "ctrl-j",
+		termbox.KeyCtrlK:          "ctrl-k",
+		termbox.KeyCtrlL:          "ctrl-l",
+		termbox.KeyCtrlN:          "ctrl-n",
+		termbox.KeyCtrlO:          "ctrl-o",
+		termbox.KeyCtrlP:          "ctrl-p",
+		termbox.KeyCtrlQ:          "ctrl-q",
+		termbox.KeyCtrlR:          "ctrl-r",
+		termbox.KeyCtrlS:          "ctrl-s",
+		termbox.KeyCtrlT:          "ctrl-t",
+		termbox.KeyCtrlU:          "ctrl-u",
+		termbox.KeyCtrlV:          "ctrl-v",
+		termbox.KeyCtrlW:          "ctrl-w",
+		termbox.KeyCtrlX:          "ctrl-x",
+		termbox.KeyCtrlY:          "ctrl-y",
+		termbox.KeyCtrlZ:          "ctrl-z",
+	}
+
 	mode = ModeNormal
 	jump = make(chan rune)
 	kbd  = make(chan termbox.Event)
@@ -46,6 +91,7 @@ var (
 		{false, 0, '>', "Move to last item", "ActionMoveToLast", false, nil},
 		{true, termbox.KeyCtrlN, 0, "Move down", "ActionMoveDown", false, nil},
 		{true, termbox.KeyCtrlP, 0, "Move up", "ActionMoveUp", false, nil},
+		{true, termbox.KeyEnter, 0, "Open folder on right", "ActionOpenFolderRight", false, nil},
 		{false, 0, 'b', "Prefix, Bookmark manage", "", true, []*cmd{
 			{false, 0, 'b', "[b]Toggle show bookmark", "ActionToggleBookmark", false, nil},
 		}},
@@ -136,7 +182,7 @@ func kbdHandleNormal(key termbox.Key, ch rune) {
 }
 
 func kbdHandleJump(key termbox.Key, ch rune) {
-	if key == termbox.KeyEsc {
+	if key == termbox.KeyEsc || key == termbox.KeyEnter {
 		quitJumpMode()
 		return
 	}
