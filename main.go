@@ -38,19 +38,18 @@ func main() {
 		home = "/root"
 	}
 
-	// uiStart()
-	// kbdStart()
+	uiStart()
+	kbdStart()
 
 loop:
 	for {
 		switch ev := termbox.PollEvent(); ev.Type {
 		case termbox.EventKey:
-			fmt.Println("key ", ev.Key, ev.Ch)
 			if isQuit(ev) {
 				fmt.Println("hello")
 				break loop
 			}
-			//kbd <- ev
+			kbd <- ev
 		case termbox.EventResize:
 			termbox.Flush()
 		}

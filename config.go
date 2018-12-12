@@ -1,6 +1,9 @@
+package main
+
+var data = []byte(`
 bindings:
   all:
-    ctrl-q: ActionQuit					        # quit fff
+    ctrl-q: ActionQuit					# quit fff
   normal:
     s:                                  # Prefix, Sort File
       - n: ActionSortByName             # Sort By Name
@@ -35,3 +38,4 @@ color:
   keyword: cyan
   selected: cyan
   jump: red
+`)
