@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mattn/go-runewidth"
+
 	"github.com/jacokoo/fff/ui"
 	termbox "github.com/nsf/termbox-go"
 )
@@ -150,6 +152,19 @@ func formatSize(size int64) string {
 	return fmt.Sprintf("%.2f%s", b, unit)
 }
 
+func truncName(str string, count int) (string, int) {
+	s, c := "", 0
+	for _, v := range str {
+		w := runewidth.RuneWidth(v)
+		if c+w > count {
+			return s + "..", c + 2
+		}
+		s += string(v)
+		c += w
+	}
+	return s, c
+}
+
 func fileNames(col *column) ([]string, []int) {
 	names := make([]string, len(col.files))
 	hints := make([]int, len(col.files))
@@ -162,11 +177,8 @@ func fileNames(col *column) ([]string, []int) {
 		}
 
 		re := columnWidth - len(si) - 4
-
-		if len(na) >= re {
-			na = string([]rune(na)[0:re-3]) + "..."
-		}
-		re -= len(na)
+		na, c := truncName(na, re-3)
+		re -= c
 		if re < 0 {
 			re = 0
 		}

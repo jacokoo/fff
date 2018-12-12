@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 
+	"github.com/mattn/go-runewidth"
 	termbox "github.com/nsf/termbox-go"
 )
 
@@ -22,7 +23,7 @@ func (t *Text) Draw() *Point {
 	i := 0
 	for _, v := range t.Data {
 		termbox.SetCell(t.Start.X+i, t.Start.Y, v, t.FG, t.BG)
-		i++
+		i += runewidth.RuneWidth(v)
 	}
 	t.End.X = t.Start.X + i - 1
 	t.End.Y = t.Start.Y

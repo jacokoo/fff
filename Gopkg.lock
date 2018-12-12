@@ -20,6 +20,9 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  input-imports = ["github.com/nsf/termbox-go"]
+  input-imports = [
+    "github.com/mattn/go-runewidth",
+    "github.com/nsf/termbox-go",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1
