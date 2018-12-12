@@ -19,7 +19,7 @@ func NewTab(p *Point, name string, names []string) *Tab {
 	}
 
 	pa := func(pp *Point) *Point {
-		return pp.RightN(0)
+		return pp.Right()
 	}
 
 	dl := &DrawerList{NewDrawable(ZeroPoint), ns, pa}

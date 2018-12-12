@@ -5,8 +5,9 @@ import (
 )
 
 var (
-	jumpQuit  = make(chan bool)
-	jumpItems []*jumpItem
+	jumpQuit    = make(chan bool)
+	jumpToReady = make(chan bool)
+	jumpItems   []*jumpItem
 )
 
 type jumpItem struct {
@@ -79,7 +80,7 @@ func collectJumps() []*jumpItem {
 			key := uiBookmark.keys[idx]
 			items = append(items, &jumpItem{nil, func() bool {
 				wo.openRoot(wo.bookmark[key])
-				return false
+				return true
 			}, p})
 		})
 	}
@@ -104,12 +105,32 @@ func collectJumps() []*jumpItem {
 }
 
 func handleJumpResult(item *jumpItem) {
+	uiNeedAck = true
 	co := item.action()
+	<-guiAck
+	uiNeedAck = false
+
 	if !co {
 		quitJumpMode()
 		return
 	}
-	quitJumpMode()
+
+	items := make([]*jumpItem, 0)
+	collectList(uiLists[len(uiLists)-1].list, func(idx int, p *ui.Point) {
+		items = append(items, &jumpItem{nil, func() bool {
+			return wo.jumpTo(len(uiLists)-1, idx)
+		}, p})
+	})
+	if len(items) == 0 {
+		quitJumpMode()
+		return
+	}
+
+	keyThem(items)
+
+	jumpItems = items
+	mode = ModeJump
+	gui <- uiJumpRefresh
 }
 
 func handleKeys() {

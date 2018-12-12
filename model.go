@@ -150,8 +150,8 @@ func newWorkspace() *workspace {
 	gs := make([]*group, maxGroups)
 	gs[0] = newGroup(wd)
 	bo := map[string]string{
-		"ws": "/User/guyong/ws",
-		"go": "/User/guyong/ws/go",
+		"ws": "/Users/guyong/ws",
+		"go": "/Users/guyong/ws/go",
 	}
 	return &workspace{bo, gs, 0, true}
 }
@@ -294,5 +294,28 @@ func (w *workspace) openRoot(path string) {
 }
 
 func (w *workspace) jumpTo(colIdx, fileIdx int) bool {
-	return false
+	gu := w.currentGroup()
+	gu.columns = gu.columns[0 : colIdx+1]
+	co := gu.columns[len(gu.columns)-1]
+	co.current = fileIdx
+
+	fi := co.files[fileIdx]
+	if !fi.IsDir() {
+		gui <- uiJumpTo
+		return false
+	}
+
+	pa := filepath.Join(co.path, fi.Name())
+	nc := newColumn(pa)
+	gu.path = pa
+	gu.columns = append(gu.columns, nc)
+	gui <- uiJumpTo
+	return true
+}
+
+func (w *workspace) refresh() {
+	co := w.currentColumn()
+	co.origin, _ = ioutil.ReadDir(co.path)
+	co.update()
+	gui <- uiColumnContentChange
 }

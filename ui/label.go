@@ -24,7 +24,7 @@ func (t *Text) Draw() *Point {
 		termbox.SetCell(t.Start.X+i, t.Start.Y, v, t.FG, t.BG)
 		i++
 	}
-	t.End.X = t.Start.X + i
+	t.End.X = t.Start.X + i - 1
 	t.End.Y = t.Start.Y
 	return t.End
 }
@@ -62,10 +62,10 @@ func (k *Keyed) Draw() *Point {
 	k.start.Color = ColorKeyword
 	e := k.start.MoveTo(k.Start)
 
-	e = k.item.MoveTo(e.RightN(0))
+	e = k.item.MoveTo(e.Right())
 	k.end.Data = "]"
 	k.end.Color = ColorKeyword
-	k.End = k.end.MoveTo(e.RightN(0))
+	k.End = k.end.MoveTo(e.Right())
 	return k.End
 }
 
@@ -73,8 +73,8 @@ func (k *Keyed) Draw() *Point {
 func (k *Keyed) MoveTo(p *Point) *Point {
 	k.Start = p
 	e := k.start.MoveTo(p)
-	e = k.item.MoveTo(e.RightN(0))
-	k.End = k.end.MoveTo(e.RightN(0))
+	e = k.item.MoveTo(e.Right())
+	k.End = k.end.MoveTo(e.Right())
 	return k.End
 }
 

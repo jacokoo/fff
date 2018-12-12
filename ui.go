@@ -24,6 +24,7 @@ const (
 	uiErrorMessage
 	uiChangeRoot
 	uiJumpRefresh
+	uiJumpTo
 )
 
 const (
@@ -32,6 +33,8 @@ const (
 
 var (
 	gui              = make(chan int)
+	guiAck           = make(chan bool)
+	uiNeedAck        = false
 	uiTab            *ui.Tab
 	uiCurrent        *ui.Label
 	uiIndicator      *ui.Text
@@ -76,8 +79,14 @@ func handleUIEvent(ev int) {
 	case uiShift:
 		uiLists = uiLists[1:]
 		redrawColumns()
+	case uiJumpTo:
+		uiLists = nil
+		uiInitColumns()
+		updateCurrent()
 	case uiChangeRoot:
-		fallthrough
+		uiLists = nil
+		uiInitColumns()
+		updateCurrent()
 	case uiToggleBookmark:
 		redrawColumns()
 	case uiJumpRefresh:
@@ -155,7 +164,7 @@ func fileNames(col *column) ([]string, []int) {
 		re := columnWidth - len(si) - 4
 
 		if len(na) >= re {
-			na = na[0:re-3] + "..."
+			na = string([]rune(na)[0:re-3]) + "..."
 		}
 		re -= len(na)
 		if re < 0 {
@@ -247,6 +256,9 @@ func startEventLoop() {
 	for {
 		handleUIEvent(<-gui)
 		termbox.Flush()
+		if uiNeedAck {
+			guiAck <- true
+		}
 	}
 }
 

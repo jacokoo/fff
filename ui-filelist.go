@@ -23,7 +23,7 @@ func NewFileList(p *ui.Point, col *column, height int) *FileList {
 	filter := ui.NewText(p.BottomN(h), "")
 	filter.Color = &ui.Color{FG: termbox.ColorBlue, BG: termbox.ColorDefault | termbox.AttrReverse}
 	ns, hs := fileNames(col)
-	list := ui.NewList(p, 0, h, ns, hs)
+	list := ui.NewList(p, col.current, h, ns, hs)
 	return &FileList{col, h, list, filter, ui.NewText(p, ""), ui.NewDrawable(p)}
 }
 
