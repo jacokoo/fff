@@ -116,6 +116,8 @@ var (
 		"ActionChangeGroup3":     func() { wo.changeGroup(3) },
 		"ActionRefresh":          func() { wo.refresh() },
 		"ActionQuitJump":         func() { quitJumpMode() },
+		"ActionClearMark":        func() { wo.clearMark() },
+		"ActionToggleMark":       func() { wo.toggleMark() },
 	}
 
 	mode = ModeNormal

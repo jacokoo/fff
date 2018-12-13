@@ -43,6 +43,8 @@ binding:
     down: ActionMoveDown                # Move down
     right: ActionOpenFolderRight        # Open folder on right
     left: ActionCloseFolderRight        # Go to parent folder
+    m: ActionToggleMark                 # Toggle mark
+    U: ActionClearMark                  # Clear all marks
 
   jump:
     enter: "ActionQuitJump"
@@ -53,9 +55,10 @@ color:
   keyword: cyan
   folder: cyan
   file: default
+  marked: yellow
   statusbar: cyan
   tab: cyan
-  jump: red
+  jump: yellow
   filter: blue
   indicator: green
 `)

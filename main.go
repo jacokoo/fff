@@ -41,7 +41,6 @@ func main() {
 	if len(home) == 0 {
 		home = "/root"
 	}
-
 	uiStart()
 	kbdStart()
 

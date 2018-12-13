@@ -22,6 +22,7 @@ const (
 	uiChangeRoot
 	uiJumpRefresh
 	uiJumpTo
+	uiMarkChange
 )
 
 const (
@@ -92,6 +93,12 @@ func handleUIEvent(ev int) {
 		redrawColumns()
 	case uiJumpRefresh:
 		refreshJumpItems()
+	case uiMarkChange:
+		li := uiLists[len(uiLists)-1]
+		li.update()
+		li.updateSelect()
+		updateCurrent()
+		updateFileInfo()
 	}
 }
 

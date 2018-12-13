@@ -19,6 +19,7 @@ type column struct {
 	filter     string
 	origin     []os.FileInfo
 	files      []os.FileInfo
+	markes     []int
 	order      int
 	showHidden bool
 	current    int
@@ -95,12 +96,12 @@ func (co *column) sort(order int) {
 
 func newColumn(path string) *column {
 	fs, _ := ioutil.ReadDir(path)
-	co := &column{path, "", fs, fs, orderName, false, 0}
+	co := &column{path, "", fs, fs, nil, orderName, false, 0}
 	co.update()
 	return co
 }
 
-// show/hide hidden files, do filter
+// show/hide hidden files, do filter, clear markes
 func (co *column) update() {
 	fs := make([]os.FileInfo, 0)
 	for _, v := range co.origin {
@@ -118,6 +119,52 @@ func (co *column) update() {
 	co.current = 0
 
 	co.sort(co.order)
+	co.unmarkAll()
+}
+
+func (co *column) marked(idx int) bool {
+	for _, i := range co.markes {
+		if i == idx {
+			return true
+		}
+	}
+	return false
+}
+
+func (co *column) toggleMark() {
+	ii := -1
+	for idx, i := range co.markes {
+		if i == co.current {
+			ii = idx
+			break
+		}
+	}
+	if ii == -1 {
+		co.markes = append(co.markes, co.current)
+		return
+	}
+
+	co.markes = append(co.markes[:ii], co.markes[ii+1:]...)
+}
+
+func (co *column) unmarkAll() {
+	co.markes = nil
+}
+
+func (co *column) move(n int) {
+	if len(co.files) == 0 {
+		return
+	}
+	i := co.current + n
+	if i < 0 {
+		i = len(co.files) - 1
+	}
+
+	if i >= len(co.files) {
+		i = 0
+	}
+
+	co.current = i
 }
 
 type group struct {
@@ -183,19 +230,7 @@ func (w *workspace) toggleHidden() {
 
 func (w *workspace) move(n int) {
 	co := w.currentColumn()
-	if len(co.files) == 0 {
-		return
-	}
-	i := co.current + n
-	if i < 0 {
-		i = len(co.files) - 1
-	}
-
-	if i >= len(co.files) {
-		i = 0
-	}
-
-	co.current = i
+	co.move(n)
 	gui <- uiChangeSelect
 }
 
@@ -220,6 +255,7 @@ func (w *workspace) openRight() {
 	if !fi.IsDir() {
 		return
 	}
+	co.unmarkAll()
 
 	pa := filepath.Join(co.path, fi.Name())
 	nc := newColumn(pa)
@@ -309,6 +345,9 @@ func (w *workspace) jumpTo(colIdx, fileIdx int) bool {
 	nc := newColumn(pa)
 	gu.path = pa
 	gu.columns = append(gu.columns, nc)
+	if len(gu.columns) >= 5 {
+		gu.columns = gu.columns[1:]
+	}
 	gui <- uiJumpTo
 	return true
 }
@@ -318,4 +357,19 @@ func (w *workspace) refresh() {
 	co.origin, _ = ioutil.ReadDir(co.path)
 	co.update()
 	gui <- uiColumnContentChange
+}
+
+func (w *workspace) toggleMark() {
+	co := w.currentColumn()
+	co.toggleMark()
+	co.move(1)
+
+	gui <- uiMarkChange
+}
+
+func (w *workspace) clearMark() {
+	co := w.currentColumn()
+	co.unmarkAll()
+
+	gui <- uiMarkChange
 }

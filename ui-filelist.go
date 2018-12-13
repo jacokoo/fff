@@ -74,10 +74,17 @@ func fileNames(col *column) ([]string, []int) {
 			re = 0
 		}
 
-		names[i] = fmt.Sprintf("  %s%s%s  ", na, strings.Repeat(" ", re), si)
+		mark := " "
+		if col.marked(i) {
+			mark = "*"
+		}
+		names[i] = fmt.Sprintf(" %s%s%s%s  ", mark, na, strings.Repeat(" ", re), si)
 		hints[i] = 0
 		if v.IsDir() {
 			hints[i] = 1
+		}
+		if col.marked(i) {
+			hints[i] = 2
 		}
 	}
 	return names, hints

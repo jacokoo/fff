@@ -72,6 +72,9 @@ func (l *List) MoveTo(p *Point) *Point {
 
 // Select change the selected item to item
 func (l *List) Select(item int) {
+	if len(l.items) == 0 {
+		return
+	}
 	old := l.items[l.Selected]
 	old.Color = l.colors[l.colorHints[l.Selected]]
 	l.Selected = item
