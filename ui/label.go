@@ -3,7 +3,7 @@ package ui
 import (
 	"fmt"
 
-	"github.com/mattn/go-runewidth"
+	runewidth "github.com/mattn/go-runewidth"
 	termbox "github.com/nsf/termbox-go"
 )
 
@@ -60,12 +60,12 @@ func NewKeyed(p *Point, key string, item Drawer) *Keyed {
 // Draw it
 func (k *Keyed) Draw() *Point {
 	k.start.Data = fmt.Sprintf("%s[", k.Key)
-	k.start.Color = ColorKeyword
+	k.start.Color = colorKeyword()
 	e := k.start.MoveTo(k.Start)
 
 	e = k.item.MoveTo(e.Right())
 	k.end.Data = "]"
-	k.end.Color = ColorKeyword
+	k.end.Color = colorKeyword()
 	k.End = k.end.MoveTo(e.Right())
 	return k.End
 }

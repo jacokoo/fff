@@ -13,7 +13,7 @@ func NewTab(p *Point, name string, names []string) *Tab {
 	for i, v := range names {
 		t := NewText(ZeroPoint, v)
 		if i == 0 {
-			t.Color = ColorSelected
+			t.Color = colorTab()
 		}
 		ns[i] = t
 	}
@@ -55,8 +55,8 @@ func (t *Tab) SwitchTo(selected int) *Point {
 	t1.Clear()
 	t2.Clear()
 
-	t1.Color = ColorNormal
-	t2.Color = ColorSelected
+	t1.Color = colorNormal()
+	t2.Color = colorTab()
 	t1.Draw()
 	t2.Draw()
 

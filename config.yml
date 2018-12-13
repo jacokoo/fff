@@ -1,11 +1,11 @@
-bindings:
+binding:
   all:
     ctrl-q: ActionQuit					        # quit fff
   normal:
     s:                                  # Prefix, Sort File
-      - n: ActionSortByName             # Sort By Name
-      - m: ActionSortByMtime            # Sort By MTime
-      - s: ActionSortBySize             # Sort By Size
+      "n": ActionSortByName               # Sort By Name
+      m: ActionSortByMtime              # Sort By MTime
+      s: ActionSortBySize               # Sort By Size
     .: ActionToggleHidden               # Toggle show hidden files
     j: ActionMoveDown                   # Move down
     k: ActionMoveUp                     # Move up
@@ -18,13 +18,18 @@ bindings:
     ctrl-p: ActionMoveUp                # Move up
     enter: ActionOpenFolderRight        # Open folder on right
     b:                                  # Prefix, Bookmark manage
-      - b: ActionToggleBookmark         # Toggle show bookmark
+      b: ActionToggleBookmark           # Toggle show bookmark
     w: ActionEnterJump                  # Enter jump mode
     g: ActionRefresh                    # Refresh current dir
-    1: ActionChangeGroup0               # Change group to 1
-    2: ActionChangeGroup1               # Change group to 2
-    3: ActionChangeGroup2               # Change group to 3
-    4: ActionChangeGroup3               # Change group to 4
+    "1": ActionChangeGroup0             # Change group to 1
+    "2": ActionChangeGroup1             # Change group to 2
+    "3": ActionChangeGroup2             # Change group to 3
+    "4": ActionChangeGroup3             # Change group to 4
+    q: ActionQuit                       # quit fff
+    up: ActionMoveUp                    # Move up
+    down: ActionMoveDown                # Move down
+    right: ActionOpenFolderRight        # Open folder on right
+    left: ActionCloseFolderRight        # Go to parent folder
 
   jump:
     enter: "ActionQuitJump"
@@ -33,5 +38,11 @@ bindings:
 color:
   normal: default
   keyword: cyan
-  selected: cyan
+  folder: cyan
+  file: default
+  marked: yellow
+  statusbar: cyan
+  tab: cyan
   jump: red
+  filter: blue
+  indicator: green

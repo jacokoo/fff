@@ -2,11 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
-	"path/filepath"
-	"strings"
-
-	"github.com/mattn/go-runewidth"
 
 	"github.com/jacokoo/fff/ui"
 	termbox "github.com/nsf/termbox-go"
@@ -48,13 +43,17 @@ var (
 	uiJumpItems      []*ui.Text
 )
 
+func colorIndicator() *ui.Color { return cfg.color("indicator") }
+func colorJump() *ui.Color      { return cfg.color("jump") }
+func colorFilter() *ui.Color    { return cfg.color("filter") }
+
 func handleUIEvent(ev int) {
 	switch ev {
 	case uiErrorMessage:
 		uiStatus.Set(message)
 	case uiChangeGroup:
 		uiTab.SwitchTo(wo.group)
-		uiLists = make([]*FileList, 0)
+		uiLists = nil
 		uiInitColumns()
 		updateCurrent()
 	case uiColumnContentChange:
@@ -103,14 +102,13 @@ func refreshJumpItems() {
 		}
 		uiJumpItems = nil
 	}
-	color := &ui.Color{FG: termbox.ColorRed, BG: termbox.ColorDefault | termbox.AttrReverse}
 
 	for _, v := range jumpItems {
 		if len(v.key) == 0 {
 			continue
 		}
 		ji := ui.NewText(v.point, string(v.key))
-		ji.Color = color
+		ji.Color = colorJump()
 		ji.Draw()
 		uiJumpItems = append(uiJumpItems, ji)
 	}
@@ -127,69 +125,6 @@ func redrawColumns() {
 		v.MoveTo(p)
 	}
 	updateCurrent()
-}
-
-func formatSize(size int64) string {
-	unit := "B"
-	b := float32(size)
-
-	if b > 1024 {
-		unit = "K"
-		b = b / 1024
-	} else {
-		return fmt.Sprintf("%dB", size)
-	}
-
-	if b > 1024 {
-		unit = "M"
-		b = b / 1024
-	}
-
-	if b > 1024 {
-		unit = "G"
-		b = b / 1024
-	}
-	return fmt.Sprintf("%.2f%s", b, unit)
-}
-
-func truncName(str string, count int) (string, int) {
-	s, c := "", 0
-	for _, v := range str {
-		w := runewidth.RuneWidth(v)
-		if c+w > count {
-			return s + "..", c + 2
-		}
-		s += string(v)
-		c += w
-	}
-	return s, c
-}
-
-func fileNames(col *column) ([]string, []int) {
-	names := make([]string, len(col.files))
-	hints := make([]int, len(col.files))
-	for i, v := range col.files {
-		na := v.Name()
-		si := formatSize(v.Size())
-		if v.IsDir() {
-			fs, _ := ioutil.ReadDir(filepath.Join(col.path, na))
-			si = fmt.Sprintf("%d it.", len(fs))
-		}
-
-		re := columnWidth - len(si) - 4
-		na, c := truncName(na, re-3)
-		re -= c
-		if re < 0 {
-			re = 0
-		}
-
-		names[i] = fmt.Sprintf("  %s%s%s  ", na, strings.Repeat(" ", re), si)
-		hints[i] = 0
-		if v.IsDir() {
-			hints[i] = 1
-		}
-	}
-	return names, hints
 }
 
 func updateCurrent() {
@@ -255,7 +190,7 @@ func uiInit() {
 	}
 	p = uiColumns.StartAt(i)
 	uiIndicator = ui.NewText(&ui.Point{X: p.X + columnWidth/2 - 1, Y: p.Y - 1}, " ▼ ")
-	uiIndicator.Color = &ui.Color{FG: termbox.ColorGreen, BG: termbox.ColorDefault}
+	uiIndicator.Color = colorIndicator()
 	uiIndicator.Draw()
 	uiIndicatorCover = ui.NewText(uiIndicator.Start, "────")
 

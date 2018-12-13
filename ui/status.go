@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"github.com/nsf/termbox-go"
+	termbox "github.com/nsf/termbox-go"
 )
 
 // Status bar
@@ -14,7 +14,7 @@ type Status struct {
 func NewStatus() *Status {
 	w, h := termbox.Size()
 	d := NewDrawable(&Point{0, h - 1})
-	d.Color = ColorKeyword.Reverse()
+	d.Color = colorStatus()
 	d.End.X = w
 
 	t := NewText(d.Start, "")

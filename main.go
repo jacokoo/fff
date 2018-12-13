@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/jacokoo/fff/ui"
+
 	termbox "github.com/nsf/termbox-go"
 )
 
@@ -17,6 +19,7 @@ var (
 	wo      = newWorkspace()
 	home    = os.Getenv("HOME")
 	wd, _   = os.Getwd()
+	cfg     = initConfig()
 	quit    = make(chan int)
 	message string
 )
@@ -29,6 +32,7 @@ func replaceHome(str string) string {
 }
 
 func main() {
+	ui.SetColors(cfg.colors)
 	if err := termbox.Init(); err != nil {
 		panic(err)
 	}

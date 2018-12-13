@@ -4,6 +4,36 @@ import (
 	termbox "github.com/nsf/termbox-go"
 )
 
+var (
+	// ZeroPoint x = 0, y = 0
+	ZeroPoint = &Point{0, 0}
+
+	// ColorDefault default color
+	ColorDefault = &Color{termbox.ColorDefault, termbox.ColorDefault}
+	colors       map[string]*Color
+)
+
+// SetColors set colors to use
+func SetColors(cs map[string]*Color) {
+	colors = cs
+}
+
+func getColor(name string) *Color {
+	cs, has := colors[name]
+	if has {
+		return cs
+	}
+	return ColorDefault
+}
+
+func colorKeyword() *Color { return getColor("keyword") }
+func colorNormal() *Color  { return getColor("normal") }
+func colorTab() *Color     { return getColor("tab") }
+func colorFile() *Color    { return getColor("file") }
+func colorFolder() *Color  { return getColor("folder") }
+func colorStatus() *Color  { return getColor("statusbar") }
+func colorMarked() *Color  { return getColor("marked") }
+
 // Drawer is the base interface for ui components
 type Drawer interface {
 	Draw() *Point
@@ -103,20 +133,6 @@ func (c *Color) Reverse() *Color {
 	return &Color{c.FG, c.BG | termbox.AttrReverse}
 }
 
-var (
-	// ZeroPoint x = 0, y = 0
-	ZeroPoint = &Point{0, 0}
-
-	// ColorNormal ts the default color
-	ColorNormal = &Color{termbox.ColorDefault, termbox.ColorDefault}
-
-	// ColorKeyword is the keyword color
-	ColorKeyword = &Color{termbox.ColorCyan, termbox.ColorDefault}
-
-	// ColorSelected is the color for selected item
-	ColorSelected = &Color{termbox.ColorCyan | termbox.AttrBold, termbox.ColorDefault | termbox.AttrReverse}
-)
-
 // Drawable contains base properties for draw
 type Drawable struct {
 	*Rect
@@ -125,7 +141,7 @@ type Drawable struct {
 
 // NewDrawable create drawable
 func NewDrawable(p *Point) *Drawable {
-	return &Drawable{p.ToRect(), ColorNormal}
+	return &Drawable{p.ToRect(), getColor("normal")}
 }
 
 // DrawerList a batch of drawer

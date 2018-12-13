@@ -129,7 +129,7 @@ func handleJumpResult(item *jumpItem) {
 	keyThem(items)
 
 	jumpItems = items
-	mode = ModeJump
+	changeMode(ModeJump)
 	gui <- uiJumpRefresh
 }
 
@@ -138,7 +138,7 @@ func handleKeys() {
 	sc:
 		select {
 		case ch := <-jump:
-			mode = ModeDisabled
+			changeMode(ModeDisabled)
 			var got = false
 			for _, it := range jumpItems {
 				if len(it.key) == 0 {
@@ -158,7 +158,7 @@ func handleKeys() {
 			}
 			if got {
 				gui <- uiJumpRefresh
-				mode = ModeJump
+				changeMode(ModeJump)
 			} else {
 				go quitJumpMode()
 			}
@@ -172,12 +172,15 @@ func enterJumpMode() {
 	jumpItems = collectJumps()
 	gui <- uiJumpRefresh
 	go handleKeys()
-	mode = ModeJump
+	changeMode(ModeJump)
 }
 
 func quitJumpMode() {
+	if mode != ModeJump && mode != ModeDisabled {
+		return
+	}
 	jumpQuit <- true
 	jumpItems = nil
 	gui <- uiJumpRefresh
-	mode = ModeNormal
+	changeMode(ModeNormal)
 }

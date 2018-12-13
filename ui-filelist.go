@@ -2,9 +2,12 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
+	"strings"
 
 	"github.com/jacokoo/fff/ui"
-	termbox "github.com/nsf/termbox-go"
+	runewidth "github.com/mattn/go-runewidth"
 )
 
 // FileList is a list of file
@@ -17,11 +20,74 @@ type FileList struct {
 	*ui.Drawable
 }
 
+func truncName(str string, count int) (string, int) {
+	s, c := "", 0
+	for _, v := range str {
+		w := runewidth.RuneWidth(v)
+		if c+w > count {
+			return s + "..", c + 2
+		}
+		s += string(v)
+		c += w
+	}
+	return s, c
+}
+
+func formatSize(size int64) string {
+	unit := "B"
+	b := float32(size)
+
+	if b > 1024 {
+		unit = "K"
+		b = b / 1024
+	} else {
+		return fmt.Sprintf("%dB", size)
+	}
+
+	if b > 1024 {
+		unit = "M"
+		b = b / 1024
+	}
+
+	if b > 1024 {
+		unit = "G"
+		b = b / 1024
+	}
+	return fmt.Sprintf("%.2f%s", b, unit)
+}
+
+func fileNames(col *column) ([]string, []int) {
+	names := make([]string, len(col.files))
+	hints := make([]int, len(col.files))
+	for i, v := range col.files {
+		na := v.Name()
+		si := formatSize(v.Size())
+		if v.IsDir() {
+			fs, _ := ioutil.ReadDir(filepath.Join(col.path, na))
+			si = fmt.Sprintf("%d it.", len(fs))
+		}
+
+		re := columnWidth - len(si) - 4
+		na, c := truncName(na, re-3)
+		re -= c
+		if re < 0 {
+			re = 0
+		}
+
+		names[i] = fmt.Sprintf("  %s%s%s  ", na, strings.Repeat(" ", re), si)
+		hints[i] = 0
+		if v.IsDir() {
+			hints[i] = 1
+		}
+	}
+	return names, hints
+}
+
 // NewFileList create file list
 func NewFileList(p *ui.Point, col *column, height int) *FileList {
 	h := height - 1
 	filter := ui.NewText(p.BottomN(h), "")
-	filter.Color = &ui.Color{FG: termbox.ColorBlue, BG: termbox.ColorDefault | termbox.AttrReverse}
+	filter.Color = colorFilter()
 	ns, hs := fileNames(col)
 	list := ui.NewList(p, col.current, h, ns, hs)
 	return &FileList{col, h, list, filter, ui.NewText(p, ""), ui.NewDrawable(p)}

@@ -1,9 +1,5 @@
 package ui
 
-import (
-	termbox "github.com/nsf/termbox-go"
-)
-
 // List a list of string
 type List struct {
 	Selected   int
@@ -23,10 +19,7 @@ func NewList(p *Point, selected, height int, items []string, colorHints []int) *
 		is[i] = NewText(p.BottomN(i), v)
 	}
 
-	cs := []*Color{
-		{termbox.ColorDefault, termbox.ColorDefault},
-		{termbox.ColorCyan, termbox.ColorDefault},
-	}
+	cs := []*Color{colorFile(), colorFolder(), colorMarked()}
 	return &List{selected, height, items, cs, is, colorHints, 0, 0, NewDrawable(p)}
 }
 

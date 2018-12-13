@@ -25,8 +25,24 @@ type cmd struct {
 	children []*cmd
 }
 
+func newCmd(key, action string, children []*cmd) *cmd {
+	c := &cmd{false, 0, 0, "", action, false, children}
+	kk, has := nameToKey[key]
+	if has {
+		c.useKey = true
+		c.key = kk
+	} else {
+		c.ch = []rune(key)[0]
+	}
+
+	if children != nil {
+		c.prefix = true
+	}
+	return c
+}
+
 var (
-	keyMap = map[termbox.Key]string{
+	keyToName = map[termbox.Key]string{
 		termbox.KeyArrowDown:  "down",
 		termbox.KeyArrowUp:    "up",
 		termbox.KeyArrowRight: "right",
@@ -71,79 +87,16 @@ var (
 		termbox.KeyCtrlZ:          "ctrl-z",
 	}
 
-	mode = ModeNormal
-	jump = make(chan rune)
-	kbd  = make(chan termbox.Event)
-
-	kbds = []*cmd{
-		{false, 0, 's', "Prefix, Sort File", "", true, []*cmd{
-			{false, 0, 'n', "[n]Sort By Name", "ActionSortByName", false, nil},
-			{false, 0, 'm', "[m]Sort By MTime", "ActionSortByMtime", false, nil},
-			{false, 0, 's', "[s]Sort By Size", "ActionSortBySize", false, nil},
-		}},
-		{false, 0, '.', "Toggle show hidden files", "ActionToggleHidden", false, nil},
-		{false, 0, 'j', "Move down", "ActionMoveDown", false, nil},
-		{false, 0, 'k', "Move up", "ActionMoveUp", false, nil},
-		{false, 0, 'l', "Open folder on right", "ActionOpenFolderRight", false, nil},
-		{false, 0, 'h', "Go to parent folder", "ActionCloseFolderRight", false, nil},
-		{false, 0, ',', "Shift column", "ActionShift", false, nil},
-		{false, 0, '<', "Move to first item", "ActionMoveToFirst", false, nil},
-		{false, 0, '>', "Move to last item", "ActionMoveToLast", false, nil},
-		{true, termbox.KeyCtrlN, 0, "Move down", "ActionMoveDown", false, nil},
-		{true, termbox.KeyCtrlP, 0, "Move up", "ActionMoveUp", false, nil},
-		{true, termbox.KeyEnter, 0, "Open folder on right", "ActionOpenFolderRight", false, nil},
-		{false, 0, 'b', "Prefix, Bookmark manage", "", true, []*cmd{
-			{false, 0, 'b', "[b]Toggle show bookmark", "ActionToggleBookmark", false, nil},
-		}},
-		{false, 0, 'w', "Enter jump mode", "ActionEnterJump", false, nil},
-		{false, 0, 'g', "Refresh current dir", "ActionRefresh", false, nil},
-		{false, 0, '1', "Change group to 1", "ActionChangeGroup0", false, nil},
-		{false, 0, '2', "Change group to 2", "ActionChangeGroup1", false, nil},
-		{false, 0, '3', "Change group to 3", "ActionChangeGroup2", false, nil},
-		{false, 0, '4', "Change group to 3", "ActionChangeGroup3", false, nil},
-	}
-
-	currentKbds = kbds
-)
-
-func doAction(key termbox.Key, ch rune) {
-	if key == termbox.KeyEsc {
-		currentKbds = kbds
-		return
-	}
-
-	var c *cmd
-	for _, v := range currentKbds {
-		if ch == 0 && v.useKey && v.key == key {
-			c = v
-			break
-		} else if !v.useKey && v.ch == ch {
-			c = v
-			break
+	nameToKey = func() map[string]termbox.Key {
+		mp := make(map[string]termbox.Key, len(keyToName))
+		for k, v := range keyToName {
+			mp[v] = k
 		}
-	}
+		return mp
+	}()
 
-	if c == nil {
-		currentKbds = kbds
-		return
-	}
-
-	if !c.prefix {
-		ac, has := actions[c.action]
-		if has {
-			ac()
-		}
-
-		currentKbds = kbds
-		return
-	}
-
-	currentKbds = c.children
-}
-
-// Action
-var (
 	actions = map[string]func(){
+		"ActionQuit":             func() {},
 		"ActionSortByName":       func() { wo.sort(orderName) },
 		"ActionSortByMtime":      func() { wo.sort(orderMTime) },
 		"ActionSortBySize":       func() { wo.sort(orderSize) },
@@ -162,16 +115,85 @@ var (
 		"ActionChangeGroup2":     func() { wo.changeGroup(2) },
 		"ActionChangeGroup3":     func() { wo.changeGroup(3) },
 		"ActionRefresh":          func() { wo.refresh() },
+		"ActionQuitJump":         func() { quitJumpMode() },
 	}
+
+	mode = ModeNormal
+	jump = make(chan rune)
+	kbd  = make(chan termbox.Event)
+
+	currentKbds = cfg.normalKbds
+	keyPrefixed = false
 )
 
-func isQuit(ev termbox.Event) bool {
-	if ev.Key == termbox.KeyCtrlQ {
-		return true
+func changeMode(to Mode) {
+	mode = to
+	restoreKbds()
+}
+
+func restoreKbds() {
+	keyPrefixed = false
+
+	switch mode {
+	case ModeNormal:
+		currentKbds = cfg.normalKbds
+	case ModeJump:
+		currentKbds = cfg.jumpKbds
+	case ModeInput:
+		currentKbds = cfg.inputKbds
+	default:
+		currentKbds = nil
+	}
+}
+
+func doAction(key termbox.Key, ch rune) {
+	if key == termbox.KeyEsc && keyPrefixed {
+		restoreKbds()
+		return
 	}
 
-	if mode == ModeNormal && ev.Ch == 'q' {
-		return true
+	var c *cmd
+	for _, v := range currentKbds {
+		if ch == 0 && v.useKey && v.key == key {
+			c = v
+			break
+		} else if !v.useKey && v.ch == ch {
+			c = v
+			break
+		}
+	}
+
+	if c == nil {
+		restoreKbds()
+		return
+	}
+
+	if !c.prefix {
+		ac, has := actions[c.action]
+		if has {
+			ac()
+		}
+
+		restoreKbds()
+		return
+	}
+
+	currentKbds = c.children
+	keyPrefixed = true
+}
+
+func isQuit(ev termbox.Event) bool {
+	for _, kb := range currentKbds {
+		if kb.action == "ActionQuit" {
+			key, ch := ev.Key, ev.Ch
+			if kb.useKey && kb.key == key {
+				return true
+			}
+
+			if !kb.useKey && kb.ch == ch {
+				return true
+			}
+		}
 	}
 
 	return false
@@ -182,14 +204,11 @@ func kbdHandleNormal(key termbox.Key, ch rune) {
 }
 
 func kbdHandleJump(key termbox.Key, ch rune) {
-	if key == termbox.KeyEsc || key == termbox.KeyEnter {
-		quitJumpMode()
+	if ch != 0 {
+		jump <- ch
 		return
 	}
-	if ch == 0 {
-		return
-	}
-	jump <- ch
+	doAction(key, ch)
 }
 
 func kbdHandleInput(key termbox.Key, ch rune) {
