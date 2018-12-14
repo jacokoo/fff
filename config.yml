@@ -10,6 +10,7 @@ binding:
       m: ActionSortByMtime              # Sort By MTime
       s: ActionSortBySize               # Sort By Size
     .: ActionToggleHidden               # Toggle show hidden files
+    d: ActionToggleDetail               # Toggle show file details
     j: ActionMoveDown                   # Move down
     k: ActionMoveUp                     # Move up
     l: ActionOpenFolderRight            # Open folder on right

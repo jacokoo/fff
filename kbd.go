@@ -101,6 +101,7 @@ var (
 		"ActionSortByMtime":        func() { wo.sort(orderMTime) },
 		"ActionSortBySize":         func() { wo.sort(orderSize) },
 		"ActionToggleHidden":       func() { wo.toggleHidden() },
+		"ActionToggleDetail":       func() { wo.toggleDetails() },
 		"ActionMoveDown":           func() { wo.move(1) },
 		"ActionMoveUp":             func() { wo.move(-1) },
 		"ActionMoveToFirst":        func() { wo.moveToFirst() },

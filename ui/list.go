@@ -64,6 +64,13 @@ func (l *List) Draw() *Point {
 	return l.End
 }
 
+// Clear it
+func (l *List) Clear() {
+	for _, v := range l.items {
+		v.Clear()
+	}
+}
+
 // MoveTo update location
 func (l *List) MoveTo(p *Point) *Point {
 	l.Start = p
@@ -82,9 +89,9 @@ func (l *List) Select(item int) {
 }
 
 // SetData update items
-func (l *List) SetData(items []string, hints []int) {
+func (l *List) SetData(items []string, hints []int, selected int) {
 	l.Clear()
-	l.Selected = 0
+	l.Selected = selected
 	l.Data = items
 	l.colorHints = hints
 

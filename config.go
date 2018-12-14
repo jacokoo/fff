@@ -12,14 +12,18 @@ import (
 
 var data = []byte(`
 binding:
+  # bindings for all mode
   all:
     ctrl-q: ActionQuit					        # quit fff
+  
+  # bindings for normal mode
   normal:
     s:                                  # Prefix, Sort File
       "n": ActionSortByName               # Sort By Name
       m: ActionSortByMtime              # Sort By MTime
       s: ActionSortBySize               # Sort By Size
     .: ActionToggleHidden               # Toggle show hidden files
+    d: ActionToggleDetail               # Toggle show file details
     j: ActionMoveDown                   # Move down
     k: ActionMoveUp                     # Move up
     l: ActionOpenFolderRight            # Open folder on right
@@ -51,6 +55,7 @@ binding:
     w: ActionJumpAllOnce                # Jump over items that can jump and stop after one jump
     W: ActionJumpAll                    # Jump over items that can jump
 
+  # bindings for jump mode
   jump:
     enter: "ActionQuitJump"
     esc: "ActionQuitJump"
@@ -66,7 +71,6 @@ color:
   jump: yellow
   filter: blue
   indicator: green
-
 `)
 
 var colorMap = map[string]termbox.Attribute{

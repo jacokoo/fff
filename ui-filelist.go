@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -56,29 +57,57 @@ func formatSize(size int64) string {
 	return fmt.Sprintf("%.2f%s", b, unit)
 }
 
+func expandedName(size string, maxSize int, path string, fi os.FileInfo) string {
+	ti := fi.ModTime().Format("2006-01-02 15:04:05")
+	md := fi.Mode().String()
+	si := strings.Repeat(" ", maxSize-len(size)) + size
+	return fmt.Sprintf("%s  %s  %s  %s", ti, md, si, fi.Name())
+}
+
+func normalName(size string, path string, v os.FileInfo) string {
+	na := v.Name()
+	if v.IsDir() {
+		fs, _ := ioutil.ReadDir(filepath.Join(path, na))
+		size = fmt.Sprintf("%d it.", len(fs))
+	}
+
+	re := columnWidth - len(size) - 4
+	na, c := truncName(na, re-3)
+	re -= c
+	if re < 0 {
+		re = 0
+	}
+
+	return fmt.Sprintf("%s%s%s  ", na, strings.Repeat(" ", re), size)
+}
+
 func fileNames(col *column) ([]string, []int) {
 	names := make([]string, len(col.files))
 	hints := make([]int, len(col.files))
-	for i, v := range col.files {
-		na := v.Name()
-		si := formatSize(v.Size())
-		if v.IsDir() {
-			fs, _ := ioutil.ReadDir(filepath.Join(col.path, na))
-			si = fmt.Sprintf("%d it.", len(fs))
-		}
+	sis := make([]string, len(col.files))
 
-		re := columnWidth - len(si) - 4
-		na, c := truncName(na, re-3)
-		re -= c
-		if re < 0 {
-			re = 0
+	maxSize := 0
+	for i, v := range col.files {
+		sis[i] = formatSize(v.Size())
+		if len(sis[i]) > maxSize {
+			maxSize = len(sis[i])
+		}
+	}
+
+	for i, v := range col.files {
+		var n string
+		if col.expanded {
+			n = expandedName(sis[i], maxSize, col.path, v)
+		} else {
+			n = normalName(sis[i], col.path, v)
 		}
 
 		mark := " "
 		if col.marked(i) {
 			mark = "*"
 		}
-		names[i] = fmt.Sprintf(" %s%s%s%s  ", mark, na, strings.Repeat(" ", re), si)
+
+		names[i] = fmt.Sprintf(" %s%s", mark, n)
 		hints[i] = 0
 		if v.IsDir() {
 			hints[i] = 1
@@ -110,10 +139,17 @@ func (fl *FileList) Draw() {
 	fl.updateIndicate()
 }
 
+// Clear it
+func (fl *FileList) Clear() {
+	fl.list.Clear()
+	fl.filter.Clear()
+	fl.indicate.Clear()
+}
+
 // MoveTo update location
 func (fl *FileList) MoveTo(p *ui.Point) *ui.Point {
 	fl.Start = p
-	fl.End.X = fl.Start.X + columnWidth
+	fl.End.X = fl.Start.X + cwidth(fl.col)
 	fl.End.Y = fl.Start.Y + fl.height
 	fl.updateIndicate()
 	fl.filter.MoveTo(p.BottomN(fl.height))
@@ -133,17 +169,19 @@ func (fl *FileList) updateFilter() {
 func (fl *FileList) updateIndicate() {
 	data := fmt.Sprintf("[%d/%d]", fl.col.current+1, len(fl.col.files))
 	fl.indicate.Clear()
-	fl.indicate.SetValue(data).MoveTo(&ui.Point{X: fl.End.X - 2 - len(data), Y: fl.End.Y})
+	fl.indicate.SetValue(data).MoveTo(&ui.Point{X: (fl.Start.X + cwidth(fl.col)) - 2 - len(data), Y: fl.End.Y})
 }
 
 func (fl *FileList) update() {
 	ns, hs := fileNames(fl.col)
-	fl.list.SetData(ns, hs)
+	fl.list.SetData(ns, hs, fl.col.current)
 	fl.updateIndicate()
 	fl.updateFilter()
+	fl.End.X = fl.Start.X + cwidth(fl.col)
 }
 
 func (fl *FileList) updateSelect() {
+	fl.list.Clear()
 	fl.list.Select(fl.col.current)
 	fl.updateIndicate()
 }

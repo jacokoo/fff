@@ -15,6 +15,7 @@ const (
 	uiRemoveColumn
 	uiChangeSelect
 	uiColumnContentChange
+	uiToggleDetail
 	uiOpenRight
 	uiOpenRightWithShift
 	uiCloseRight
@@ -29,8 +30,24 @@ const (
 )
 
 const (
-	columnWidth int = 30
+	columnWidth         int = 30
+	expandedColumnWidth int = 80
 )
+
+func cwidth(col *column) int {
+	if col.expanded {
+		return expandedColumnWidth
+	}
+	return columnWidth
+}
+
+func ccwidth() int {
+	return cwidth(wo.currentColumn())
+}
+
+func last() *FileList {
+	return uiLists[len(uiLists)-1]
+}
 
 var (
 	gui              = make(chan int)
@@ -61,12 +78,28 @@ func handleUIEvent(ev int) {
 		uiInitColumns()
 		updateCurrent()
 	case uiColumnContentChange:
-		uiLists[len(uiLists)-1].update()
+		last().update()
+	case uiToggleDetail:
+		uiColumns.Remove()
+		list := last()
+		if list.col.expanded {
+			idx := uiColumns.Add(ccwidth())
+			uiColumns.ClearAt(idx)
+		}
+		list.update()
+		if !list.col.expanded {
+			uiColumns.Add(ccwidth())
+		}
+		updateCurrent()
 	case uiChangeSelect:
-		uiLists[len(uiLists)-1].updateSelect()
+		last().updateSelect()
 		updateFileInfo()
 	case uiOpenRight:
-		idx := uiColumns.Add(columnWidth)
+		uiColumns.Remove()
+		last().update()
+		uiColumns.Add(cwidth(last().col))
+
+		idx := uiColumns.Add(ccwidth())
 		pp := uiColumns.StartAt(idx)
 
 		ls := NewFileList(pp, wo.currentColumn(), uiColumns.Height-2)
@@ -77,7 +110,7 @@ func handleUIEvent(ev int) {
 		uiInitColumns()
 		updateCurrent()
 	case uiCloseRight:
-		uiLists[len(uiLists)-1].Clear()
+		last().Clear()
 		uiColumns.Remove()
 		uiLists = uiLists[:len(uiLists)-1]
 		updateCurrent()
@@ -98,7 +131,7 @@ func handleUIEvent(ev int) {
 	case uiJumpRefresh:
 		refreshJumpItems()
 	case uiMarkChange:
-		li := uiLists[len(uiLists)-1]
+		li := last()
 		li.update()
 		li.updateSelect()
 		updateCurrent()
@@ -128,11 +161,11 @@ func refreshJumpItems() {
 func redrawColumns() {
 	uiColumns.RemoveAll()
 	if wo.showBookmark {
-		p := uiColumns.StartAt(uiColumns.Add2(20))
+		p := uiColumns.StartAt(uiColumns.Add2(uiBookmark.width))
 		uiBookmark.MoveTo(p)
 	}
 	for _, v := range uiLists {
-		p := uiColumns.StartAt(uiColumns.Add(columnWidth))
+		p := uiColumns.StartAt(uiColumns.Add(cwidth(v.col)))
 		v.MoveTo(p)
 	}
 	updateCurrent()
@@ -154,7 +187,7 @@ func updateCurrent() {
 	uiIndicator.Clear()
 	uiIndicatorCover.MoveTo(uiIndicator.Start)
 
-	p := uiLists[len(uiLists)-1].Start.RightN(columnWidth/2 - 1)
+	p := last().Start.RightN(ccwidth()/2 - 1)
 	p.Y--
 	uiIndicator.MoveTo(p)
 }
@@ -170,12 +203,12 @@ func uiInitColumns() {
 	uiColumns.RemoveAll()
 
 	if wo.showBookmark {
-		p := uiColumns.StartAt(uiColumns.Add2(20))
+		p := uiColumns.StartAt(uiColumns.Add2(uiBookmark.width))
 		uiBookmark.MoveTo(p)
 	}
 
 	for _, v := range wo.currentGroup().columns {
-		ii := uiColumns.Add(columnWidth)
+		ii := uiColumns.Add(cwidth(v))
 		p := uiColumns.StartAt(ii)
 		list := NewFileList(p, v, uiColumns.Height-2)
 		list.Draw()
@@ -200,8 +233,7 @@ func uiInit() {
 	p = p.BottomN(2)
 	p.X = 0
 
-	uiBookmark = newBookmark(p, 20, h-4)
-
+	uiBookmark = newBookmark(p, h-4)
 	uiColumns = ui.NewColumns(p, w, h-4)
 	uiColumns.Draw()
 
@@ -211,7 +243,7 @@ func uiInit() {
 		i = 1
 	}
 	p = uiColumns.StartAt(i)
-	uiIndicator = ui.NewText(&ui.Point{X: p.X + columnWidth/2 - 1, Y: p.Y - 1}, " ▼ ")
+	uiIndicator = ui.NewText(&ui.Point{X: p.X + ccwidth()/2 - 1, Y: p.Y - 1}, " ▼ ")
 	uiIndicator.Color = colorIndicator()
 	uiIndicator.Draw()
 	uiIndicatorCover = ui.NewText(uiIndicator.Start, "────")

@@ -23,6 +23,7 @@ type column struct {
 	order      int
 	showHidden bool
 	current    int
+	expanded   bool
 }
 
 type files []os.FileInfo
@@ -96,7 +97,7 @@ func (co *column) sort(order int) {
 
 func newColumn(path string) *column {
 	fs, _ := ioutil.ReadDir(path)
-	co := &column{path, "", fs, fs, nil, orderName, false, 0}
+	co := &column{path, "", fs, fs, nil, orderName, false, 0, false}
 	co.update()
 	return co
 }
@@ -235,6 +236,12 @@ func (w *workspace) toggleHidden() {
 	gui <- uiColumnContentChange
 }
 
+func (w *workspace) toggleDetails() {
+	co := w.currentColumn()
+	co.expanded = !co.expanded
+	gui <- uiToggleDetail
+}
+
 func (w *workspace) move(n int) {
 	co := w.currentColumn()
 	if len(co.files) == 0 {
@@ -266,6 +273,7 @@ func (w *workspace) openRight() {
 		return
 	}
 	co.unmarkAll()
+	co.expanded = false
 
 	pa := filepath.Join(co.path, fi.Name())
 	nc := newColumn(pa)
@@ -349,6 +357,8 @@ func (w *workspace) jumpTo(colIdx, fileIdx int) bool {
 		gui <- uiJumpTo
 		return false
 	}
+	co.unmarkAll()
+	co.expanded = false
 
 	pa := filepath.Join(co.path, fi.Name())
 	nc := newColumn(pa)

@@ -73,7 +73,7 @@ func NewColumns(p *Point, width, height int) *Columns {
 func (c *Columns) Draw() *Point {
 	c.line.Draw()
 	c.End.X = c.line.End.X
-	c.End.Y = c.Start.Y + c.Height
+	c.End.Y = c.Start.Y + c.Height - 1
 	for _, v := range c.columns {
 		v.Draw()
 	}
@@ -129,11 +129,14 @@ func (c *Columns) Remove() {
 	c.columns = c.columns[:l]
 }
 
+// ClearAt clear column at idx
+func (c *Columns) ClearAt(idx int) {
+	c.columns[idx].Clear()
+}
+
 // RemoveAll the columns
 func (c *Columns) RemoveAll() {
-	for _, v := range c.columns {
-		v.Clear()
-	}
-
+	c.Clear()
+	c.line.Draw()
 	c.columns = c.columns[:0]
 }
