@@ -32,7 +32,8 @@ binding:
     enter: ActionOpenFolderRight        # Open folder on right
     b:                                  # Prefix, Bookmark manage
       b: ActionToggleBookmark           # Toggle show bookmark
-    w: ActionEnterJump                  # Enter jump mode
+      I: ActionJumpBookmark             # Jump over bookmarks
+      i: ActionJumpBookmarkOnce         # Jump over bookmarks and stop after one jump
     g: ActionRefresh                    # Refresh current dir
     "1": ActionChangeGroup0             # Change group to 1
     "2": ActionChangeGroup1             # Change group to 2
@@ -45,6 +46,10 @@ binding:
     left: ActionCloseFolderRight        # Go to parent folder
     m: ActionToggleMark                 # Toggle mark
     U: ActionClearMark                  # Clear all marks
+    i: ActionJumpCurrentDirOnce         # Jump over current dir and stop after one jump
+    I: ActionJumpCurrentDir             # Jump over current dir
+    w: ActionJumpAllOnce                # Jump over items that can jump and stop after one jump
+    W: ActionJumpAll                    # Jump over items that can jump
 
   jump:
     enter: "ActionQuitJump"
@@ -61,6 +66,7 @@ color:
   jump: yellow
   filter: blue
   indicator: green
+
 `)
 
 var colorMap = map[string]termbox.Attribute{

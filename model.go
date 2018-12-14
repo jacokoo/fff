@@ -176,14 +176,21 @@ func newGroup(path string) *group {
 	return &group{path, []*column{newColumn(path)}}
 }
 
-func (gr group) currentDir() string {
+func (gr *group) currentDir() string {
 	co := gr.columns[len(gr.columns)-1]
 	return co.path
 }
 
-func (gr group) currentSelect() string {
+func (gr *group) currentSelect() string {
 	co := gr.columns[len(gr.columns)-1]
 	return filepath.Join(co.path, co.files[co.current].Name())
+}
+
+func (gr *group) shift() {
+	if len(gr.columns) == 1 {
+		return
+	}
+	gr.columns = gr.columns[1:]
 }
 
 type workspace struct {
@@ -230,6 +237,9 @@ func (w *workspace) toggleHidden() {
 
 func (w *workspace) move(n int) {
 	co := w.currentColumn()
+	if len(co.files) == 0 {
+		return
+	}
 	co.move(n)
 	gui <- uiChangeSelect
 }
@@ -261,8 +271,12 @@ func (w *workspace) openRight() {
 	nc := newColumn(pa)
 	gu.path = pa
 	gu.columns = append(gu.columns, nc)
-
-	gui <- uiOpenRight
+	if len(gu.columns) >= maxColumns {
+		gu.shift()
+		gui <- uiOpenRightWithShift
+	} else {
+		gui <- uiOpenRight
+	}
 }
 
 func (w *workspace) closeRight() {
@@ -287,12 +301,7 @@ func (w *workspace) closeRight() {
 }
 
 func (w *workspace) shift() {
-	gu := w.currentGroup()
-	if len(gu.columns) == 1 {
-		return
-	}
-
-	gu.columns = gu.columns[1:]
+	w.currentGroup().shift()
 	gui <- uiShift
 }
 
@@ -345,7 +354,7 @@ func (w *workspace) jumpTo(colIdx, fileIdx int) bool {
 	nc := newColumn(pa)
 	gu.path = pa
 	gu.columns = append(gu.columns, nc)
-	if len(gu.columns) >= 5 {
+	if len(gu.columns) >= maxColumns {
 		gu.columns = gu.columns[1:]
 	}
 	gui <- uiJumpTo

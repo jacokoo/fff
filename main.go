@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/jacokoo/fff/ui"
 
@@ -24,19 +22,15 @@ var (
 	message string
 )
 
-func replaceHome(str string) string {
-	if strings.HasPrefix(str, home) {
-		return filepath.Join("~", str[len(home):])
-	}
-	return str
-}
-
 func main() {
 	ui.SetColors(cfg.colors)
 	if err := termbox.Init(); err != nil {
 		panic(err)
 	}
 	defer termbox.Close()
+
+	w, _ := termbox.Size()
+	maxColumns = w / columnWidth
 
 	if len(home) == 0 {
 		home = "/root"

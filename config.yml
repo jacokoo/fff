@@ -1,6 +1,9 @@
 binding:
+  # bindings for all mode
   all:
     ctrl-q: ActionQuit					        # quit fff
+  
+  # bindings for normal mode
   normal:
     s:                                  # Prefix, Sort File
       "n": ActionSortByName               # Sort By Name
@@ -19,7 +22,8 @@ binding:
     enter: ActionOpenFolderRight        # Open folder on right
     b:                                  # Prefix, Bookmark manage
       b: ActionToggleBookmark           # Toggle show bookmark
-    w: ActionEnterJump                  # Enter jump mode
+      I: ActionJumpBookmark             # Jump over bookmarks
+      i: ActionJumpBookmarkOnce         # Jump over bookmarks and stop after one jump
     g: ActionRefresh                    # Refresh current dir
     "1": ActionChangeGroup0             # Change group to 1
     "2": ActionChangeGroup1             # Change group to 2
@@ -32,7 +36,12 @@ binding:
     left: ActionCloseFolderRight        # Go to parent folder
     m: ActionToggleMark                 # Toggle mark
     U: ActionClearMark                  # Clear all marks
+    i: ActionJumpCurrentDirOnce         # Jump over current dir and stop after one jump
+    I: ActionJumpCurrentDir             # Jump over current dir
+    w: ActionJumpAllOnce                # Jump over items that can jump and stop after one jump
+    W: ActionJumpAll                    # Jump over items that can jump
 
+  # bindings for jump mode
   jump:
     enter: "ActionQuitJump"
     esc: "ActionQuitJump"
@@ -45,6 +54,6 @@ color:
   marked: yellow
   statusbar: cyan
   tab: cyan
-  jump: cyan
+  jump: yellow
   filter: blue
   indicator: green

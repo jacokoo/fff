@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"path/filepath"
+	"strings"
 
 	"github.com/jacokoo/fff/ui"
 	termbox "github.com/nsf/termbox-go"
@@ -14,6 +16,7 @@ const (
 	uiChangeSelect
 	uiColumnContentChange
 	uiOpenRight
+	uiOpenRightWithShift
 	uiCloseRight
 	uiToParent
 	uiShift
@@ -34,7 +37,7 @@ var (
 	guiAck           = make(chan bool)
 	uiNeedAck        = false
 	uiTab            *ui.Tab
-	uiCurrent        *ui.Label
+	uiCurrent        *ui.Path
 	uiIndicator      *ui.Text
 	uiIndicatorCover *ui.Text
 	uiColumns        *ui.Columns
@@ -42,6 +45,7 @@ var (
 	uiStatus         *ui.Status
 	uiBookmark       *bookmark
 	uiJumpItems      []*ui.Text
+	maxColumns       = 5
 )
 
 func colorIndicator() *ui.Color { return cfg.color("indicator") }
@@ -54,7 +58,6 @@ func handleUIEvent(ev int) {
 		uiStatus.Set(message)
 	case uiChangeGroup:
 		uiTab.SwitchTo(wo.group)
-		uiLists = nil
 		uiInitColumns()
 		updateCurrent()
 	case uiColumnContentChange:
@@ -70,6 +73,9 @@ func handleUIEvent(ev int) {
 		ls.Draw()
 		uiLists = append(uiLists, ls)
 		updateCurrent()
+	case uiOpenRightWithShift:
+		uiInitColumns()
+		updateCurrent()
 	case uiCloseRight:
 		uiLists[len(uiLists)-1].Clear()
 		uiColumns.Remove()
@@ -82,11 +88,9 @@ func handleUIEvent(ev int) {
 		uiLists = uiLists[1:]
 		redrawColumns()
 	case uiJumpTo:
-		uiLists = nil
 		uiInitColumns()
 		updateCurrent()
 	case uiChangeRoot:
-		uiLists = nil
 		uiInitColumns()
 		updateCurrent()
 	case uiToggleBookmark:
@@ -134,9 +138,19 @@ func redrawColumns() {
 	updateCurrent()
 }
 
+func pathItems(path string) []string {
+	ts := strings.Split(path, string(filepath.Separator))
+	if ts[0] == "" {
+		ts[0] = "/"
+	}
+	if ts[len(ts)-1] == "" {
+		ts = ts[:len(ts)-1]
+	}
+	return ts
+}
+
 func updateCurrent() {
-	uiCurrent.Clear()
-	uiCurrent.SetValue(replaceHome(wo.currentDir())).Draw()
+	uiCurrent.SetValue(pathItems(wo.currentDir()))
 	uiIndicator.Clear()
 	uiIndicatorCover.MoveTo(uiIndicator.Start)
 
@@ -152,6 +166,7 @@ func updateFileInfo() {
 }
 
 func uiInitColumns() {
+	uiLists = nil
 	uiColumns.RemoveAll()
 
 	if wo.showBookmark {
@@ -175,10 +190,10 @@ func uiInit() {
 		names[i] = fmt.Sprintf(" %d ", i+1)
 	}
 
-	uiTab = ui.NewTab(&ui.Point{X: 0, Y: 1}, "TAB", names)
+	uiTab = ui.NewTab(&ui.Point{X: 0, Y: 1}, "", names)
 	p := uiTab.Draw()
 
-	uiCurrent = ui.NewLabel(p.RightN(2), "CURRENT", replaceHome(wo.currentDir()))
+	uiCurrent = ui.NewPath(p.RightN(2), "", pathItems(wo.currentDir()))
 	p = uiCurrent.Draw()
 
 	w, h := termbox.Size()

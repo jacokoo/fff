@@ -154,8 +154,11 @@ type DrawerList struct {
 // Draw it
 func (d *DrawerList) Draw() *Point {
 	p := d.Start
-	for _, v := range d.Drawers {
-		p = d.padding(v.MoveTo(p))
+	for i, v := range d.Drawers {
+		p = v.MoveTo(p)
+		if i != len(d.Drawers)-1 {
+			p = d.padding(p)
+		}
 	}
 	d.End = p
 	return p

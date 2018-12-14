@@ -1,13 +1,28 @@
 package main
 
 import (
+	"fmt"
+	"path/filepath"
+	"strings"
+
 	"github.com/jacokoo/fff/ui"
 )
 
+// JumpMode describe the jump mode
+type JumpMode uint8
+
+// Jump
+const (
+	JumpModeAll JumpMode = iota
+	JumpModeBookmark
+	JumpModeCurrentDir
+)
+
 var (
-	jumpQuit    = make(chan bool)
-	jumpToReady = make(chan bool)
-	jumpItems   []*jumpItem
+	jumpQuit     = make(chan bool)
+	jumpToReady  = make(chan bool)
+	jumpItems    []*jumpItem
+	continueJump = false
 )
 
 type jumpItem struct {
@@ -20,7 +35,7 @@ func collectList(list *ui.List, fn func(int, *ui.Point)) {
 	from, to := list.ItemRange()
 	rs := list.ItemRects()
 	for i := from; i < to; i++ {
-		p := rs[i].Start.Right()
+		p := rs[i-from].Start.Right()
 		p.X--
 		fn(i, p)
 	}
@@ -63,64 +78,18 @@ func keyThem(items []*jumpItem) {
 	twoCharKey(items)
 }
 
-func collectJumps() []*jumpItem {
-	items := make([]*jumpItem, 0)
-	for i, v := range uiTab.TabRects() {
-		idx := i
-		ji := &jumpItem{[]rune{rune(49 + i)}, func() bool {
-			wo.changeGroup(idx)
-			return false
-		}, v.Start.Bottom().MoveRight()}
-		items = append(items, ji)
-	}
-
-	s := len(items)
-	if wo.showBookmark {
-		collectList(uiBookmark.list, func(idx int, p *ui.Point) {
-			key := uiBookmark.keys[idx]
-			items = append(items, &jumpItem{nil, func() bool {
-				wo.openRoot(wo.bookmark[key])
-				return true
-			}, p})
-		})
-	}
-
-	for i, v := range uiLists {
-		colIdx := i
-		collectList(v.list, func(idx int, p *ui.Point) {
-			items = append(items, &jumpItem{nil, func() bool {
-				return wo.jumpTo(colIdx, idx)
-			}, p})
-		})
-	}
-
-	e := len(items)
-	if s == e {
-		return items
-	}
-
-	keyThem(items[s:])
-
-	return items
-}
-
 func handleJumpResult(item *jumpItem) {
 	uiNeedAck = true
 	co := item.action()
 	<-guiAck
 	uiNeedAck = false
 
-	if !co {
+	if !co || !continueJump {
 		quitJumpMode()
 		return
 	}
 
-	items := make([]*jumpItem, 0)
-	collectList(uiLists[len(uiLists)-1].list, func(idx int, p *ui.Point) {
-		items = append(items, &jumpItem{nil, func() bool {
-			return wo.jumpTo(len(uiLists)-1, idx)
-		}, p})
-	})
+	items := collectCurrentDir()
 	if len(items) == 0 {
 		quitJumpMode()
 		return
@@ -168,8 +137,92 @@ func handleKeys() {
 	}
 }
 
-func enterJumpMode() {
-	jumpItems = collectJumps()
+func collectAllDir() []*jumpItem {
+	items := make([]*jumpItem, 0)
+	for i, v := range uiLists {
+		colIdx := i
+		collectList(v.list, func(idx int, p *ui.Point) {
+			items = append(items, &jumpItem{nil, func() bool {
+				return wo.jumpTo(colIdx, idx)
+			}, p})
+		})
+	}
+	return items
+}
+
+func collectBookmark() []*jumpItem {
+	items := make([]*jumpItem, 0)
+	collectList(uiBookmark.list, func(idx int, p *ui.Point) {
+		key := uiBookmark.keys[idx]
+		items = append(items, &jumpItem{nil, func() bool {
+			wo.openRoot(wo.bookmark[key])
+			return true
+		}, p})
+	})
+	return items
+}
+
+func collectCurrentDir() []*jumpItem {
+	items := make([]*jumpItem, 0)
+	collectList(uiLists[len(uiLists)-1].list, func(idx int, p *ui.Point) {
+		items = append(items, &jumpItem{nil, func() bool {
+			return wo.jumpTo(len(uiLists)-1, idx)
+		}, p})
+	})
+	return items
+}
+
+func collectGroups() []*jumpItem {
+	items := make([]*jumpItem, 0)
+	for i, v := range uiTab.TabRects() {
+		idx := i
+		ji := &jumpItem{[]rune{rune(49 + i)}, func() bool {
+			wo.changeGroup(idx)
+			return false
+		}, v.Start.Bottom().MoveRight()}
+		items = append(items, ji)
+	}
+	return items
+}
+
+func collectCurrentPath() []*jumpItem {
+	items := make([]*jumpItem, 0)
+	its := pathItems(wo.currentDir())
+	p := ""
+	for i, v := range uiCurrent.ItemRects() {
+		p += fmt.Sprintf("%c%s", filepath.Separator, its[i])
+		pp := v.Start.Bottom()
+		if i == 0 {
+			pp.X--
+		}
+		if strings.HasPrefix(p, "//") {
+			p = p[1:]
+		}
+
+		to := p
+		ji := &jumpItem{nil, func() bool {
+			wo.openRoot(to)
+			return true
+		}, pp}
+		items = append(items, ji)
+	}
+	return items
+}
+
+func enterJumpMode(md JumpMode, cj bool) {
+	switch md {
+	case JumpModeBookmark:
+		jumpItems = collectBookmark()
+	case JumpModeCurrentDir:
+		jumpItems = append(collectCurrentPath(), collectCurrentDir()...)
+	case JumpModeAll:
+		jumpItems = append(collectBookmark(), collectCurrentPath()...)
+		jumpItems = append(jumpItems, collectAllDir()...)
+	}
+	keyThem(jumpItems)
+	jumpItems = append(jumpItems, collectGroups()...)
+	continueJump = cj
+
 	gui <- uiJumpRefresh
 	go handleKeys()
 	changeMode(ModeJump)

@@ -3,8 +3,8 @@ package ui
 // Tab is the ui tab sheet
 type Tab struct {
 	Current int
-	keyed   *Keyed
 	names   *DrawerList
+	*Keyed
 }
 
 // NewTab create tab
@@ -24,28 +24,13 @@ func NewTab(p *Point, name string, names []string) *Tab {
 
 	dl := &DrawerList{NewDrawable(ZeroPoint), ns, pa}
 	k := NewKeyed(p, name, dl)
-	return &Tab{0, k, dl}
-}
-
-// Draw it
-func (t *Tab) Draw() *Point {
-	return t.keyed.Draw()
-}
-
-// Clear it
-func (t *Tab) Clear() {
-	t.keyed.Clear()
-}
-
-// MoveTo update location
-func (t *Tab) MoveTo(p *Point) *Point {
-	return t.keyed.MoveTo(p)
+	return &Tab{0, dl, k}
 }
 
 // SwitchTo update select index
 func (t *Tab) SwitchTo(selected int) *Point {
 	if t.Current == selected {
-		return t.keyed.End
+		return t.Keyed.End
 	}
 
 	t1 := t.names.Drawers[t.Current].(*Text)
@@ -60,7 +45,7 @@ func (t *Tab) SwitchTo(selected int) *Point {
 	t1.Draw()
 	t2.Draw()
 
-	return t.keyed.End
+	return t.Keyed.End
 }
 
 // TabRects return the rect of all the tabs
