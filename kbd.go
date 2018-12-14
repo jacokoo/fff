@@ -123,7 +123,8 @@ var (
 		"ActionJumpBookmark":       func() { enterJumpMode(JumpModeBookmark, true) },
 		"ActionJumpAllOnce":        func() { enterJumpMode(JumpModeAll, false) },
 		"ActionJumpAll":            func() { enterJumpMode(JumpModeAll, true) },
-		"ActionEnterInputMode":     func() { enterInputMode() },
+		"ActionStartFilter":        func() { enterInputMode(wo.currentColumn()) },
+		"ActionClearFilter":        func() { wo.clearFilter() },
 		"ActionQuitInputMode":      func() { quitInputMode() },
 		"ActionInputDelete":        func() { inputDelete() },
 	}

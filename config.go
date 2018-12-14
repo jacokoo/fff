@@ -19,7 +19,7 @@ binding:
   # bindings for normal mode
   normal:
     s:                                  # Prefix, Sort File
-      "n": ActionSortByName               # Sort By Name
+      "n": ActionSortByName             # Sort By Name
       m: ActionSortByMtime              # Sort By MTime
       s: ActionSortBySize               # Sort By Size
     .: ActionToggleHidden               # Toggle show hidden files
@@ -54,7 +54,8 @@ binding:
     I: ActionJumpCurrentDir             # Jump over current dir
     w: ActionJumpAllOnce                # Jump over items that can jump and stop after one jump
     W: ActionJumpAll                    # Jump over items that can jump
-    f: ActionEnterInputMode             # Filter
+    f: ActionStartFilter                # Filter
+    F: ActionClearFilter                # Clear filter
 
   # bindings for jump mode
   jump:
@@ -74,8 +75,9 @@ color:
   statusbar: cyan
   tab: cyan
   jump: yellow
-  filter: blue
+  filter: magenta
   indicator: green
+
 `)
 
 var colorMap = map[string]termbox.Attribute{

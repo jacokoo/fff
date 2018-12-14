@@ -28,6 +28,7 @@ const (
 	uiJumpTo
 	uiMarkChange
 	uiInputChange
+	uiQuitInput
 )
 
 const (
@@ -139,8 +140,10 @@ func handleUIEvent(ev int) {
 		updateCurrent()
 		updateFileInfo()
 	case uiInputChange:
-		p := uiStatusFilter.Restore().Set(1, inputText)
+		p := uiStatusFilter.Restore().Set(1, inputer.Get())
 		termbox.SetCursor(p.X+1, p.Y)
+	case uiQuitInput:
+		updateFileInfo()
 	}
 }
 

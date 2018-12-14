@@ -1,19 +1,24 @@
 package main
 
-import (
-	"github.com/nsf/termbox-go"
-)
-
 var (
 	inputQuit = make(chan bool)
-	inputText = ""
+	inputer   Inputer
 )
+
+// Inputer for input
+type Inputer interface {
+	Name() string
+	Get() string
+	Append(ch rune)
+	Delete() bool
+	End()
+}
 
 func handleInputKey() {
 	for {
 		select {
 		case ch := <-input:
-			inputText += string(ch)
+			inputer.Append(ch)
 			gui <- uiInputChange
 		case <-inputQuit:
 			return
@@ -21,26 +26,28 @@ func handleInputKey() {
 	}
 }
 
-func enterInputMode() {
+func enterInputMode(in Inputer) {
 	changeMode(ModeInput)
-	inputText = ""
+	inputer = in
 	gui <- uiInputChange
 	go handleInputKey()
 }
 
 func quitInputMode() {
-	changeMode(ModeNormal)
 	updateFileInfo()
-	termbox.SetCursor(-1, -1)
-	termbox.Flush()
+	inputer.End()
+	inputer = nil
+	gui <- uiQuitInput
 	inputQuit <- true
+	changeMode(ModeNormal)
 }
 
 func inputDelete() {
-	if len(inputText) == 0 {
+	b := inputer.Delete()
+	if !b {
 		quitInputMode()
 		return
 	}
-	inputText = inputText[:len(inputText)-1]
+
 	gui <- uiInputChange
 }
