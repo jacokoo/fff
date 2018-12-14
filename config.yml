@@ -41,11 +41,16 @@ binding:
     I: ActionJumpCurrentDir             # Jump over current dir
     w: ActionJumpAllOnce                # Jump over items that can jump and stop after one jump
     W: ActionJumpAll                    # Jump over items that can jump
+    f: ActionEnterInputMode             # Filter
 
   # bindings for jump mode
   jump:
-    enter: "ActionQuitJump"
-    esc: "ActionQuitJump"
+    enter: ActionQuitJump
+    esc: ActionQuitJump
+
+  input:
+    enter: ActionQuitInputMode
+    backspace: ActionInputDelete
 
 color:
   normal: default

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/jacokoo/fff/ui"
@@ -30,7 +29,7 @@ func main() {
 	defer termbox.Close()
 
 	w, _ := termbox.Size()
-	maxColumns = w / columnWidth
+	maxColumns = w/columnWidth + 1
 
 	if len(home) == 0 {
 		home = "/root"
@@ -43,7 +42,6 @@ loop:
 		switch ev := termbox.PollEvent(); ev.Type {
 		case termbox.EventKey:
 			if isQuit(ev) {
-				fmt.Println("hello")
 				break loop
 			}
 			kbd <- ev

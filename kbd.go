@@ -51,7 +51,6 @@ var (
 		termbox.KeySpace:      "space",
 		termbox.KeyEnter:      "enter",
 		termbox.KeyEsc:        "esc",
-		termbox.KeyBackspace:  "backspace",
 		termbox.KeyBackspace2: "backspace",
 		termbox.KeyHome:       "home",
 		termbox.KeyEnd:        "end",
@@ -124,11 +123,15 @@ var (
 		"ActionJumpBookmark":       func() { enterJumpMode(JumpModeBookmark, true) },
 		"ActionJumpAllOnce":        func() { enterJumpMode(JumpModeAll, false) },
 		"ActionJumpAll":            func() { enterJumpMode(JumpModeAll, true) },
+		"ActionEnterInputMode":     func() { enterInputMode() },
+		"ActionQuitInputMode":      func() { quitInputMode() },
+		"ActionInputDelete":        func() { inputDelete() },
 	}
 
-	mode = ModeNormal
-	jump = make(chan rune)
-	kbd  = make(chan termbox.Event)
+	mode  = ModeNormal
+	jump  = make(chan rune)
+	input = make(chan rune)
+	kbd   = make(chan termbox.Event)
 
 	currentKbds = cfg.normalKbds
 	keyPrefixed = false
@@ -220,6 +223,11 @@ func kbdHandleJump(key termbox.Key, ch rune) {
 }
 
 func kbdHandleInput(key termbox.Key, ch rune) {
+	if ch != 0 {
+		input <- ch
+		return
+	}
+	doAction(key, ch)
 }
 
 func handleKeyEvent() {

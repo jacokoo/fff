@@ -27,6 +27,7 @@ const (
 	uiJumpRefresh
 	uiJumpTo
 	uiMarkChange
+	uiInputChange
 )
 
 const (
@@ -59,7 +60,8 @@ var (
 	uiIndicatorCover *ui.Text
 	uiColumns        *ui.Columns
 	uiLists          []*FileList
-	uiStatus         *ui.Status
+	uiStatusMessage  *ui.StatusBackup
+	uiStatusFilter   *ui.StatusBackup
 	uiBookmark       *bookmark
 	uiJumpItems      []*ui.Text
 	maxColumns       = 5
@@ -72,7 +74,7 @@ func colorFilter() *ui.Color    { return cfg.color("filter") }
 func handleUIEvent(ev int) {
 	switch ev {
 	case uiErrorMessage:
-		uiStatus.Set(message)
+		uiStatusMessage.Restore().Set(0, message)
 	case uiChangeGroup:
 		uiTab.SwitchTo(wo.group)
 		uiInitColumns()
@@ -136,6 +138,9 @@ func handleUIEvent(ev int) {
 		li.updateSelect()
 		updateCurrent()
 		updateFileInfo()
+	case uiInputChange:
+		p := uiStatusFilter.Restore().Set(1, inputText)
+		termbox.SetCursor(p.X+1, p.Y)
 	}
 }
 
@@ -195,7 +200,8 @@ func updateCurrent() {
 func updateFileInfo() {
 	co := wo.currentColumn()
 	fi := co.files[co.current]
-	uiStatus.Set(fmt.Sprintf("%s  %s  %s", fi.ModTime().Format("2006-01-02 15:04:05"), fi.Mode().String(), fi.Name()))
+	m := fmt.Sprintf("%s  %s  %s", fi.ModTime().Format("2006-01-02 15:04:05"), fi.Mode().String(), fi.Name())
+	uiStatusMessage.Restore().Set(0, m)
 }
 
 func uiInitColumns() {
@@ -248,8 +254,16 @@ func uiInit() {
 	uiIndicator.Draw()
 	uiIndicatorCover = ui.NewText(uiIndicator.Start, "────")
 
-	uiStatus = ui.NewStatus()
-	uiStatus.Draw()
+	ss := ui.NewStatus()
+	ss.Draw()
+
+	ss.Add(0)
+	uiStatusMessage = ss.Backup()
+	si := ss.Add(2)
+	si.Color = colorFilter()
+	si.SetValue("FILTER ")
+	ss.Add(0)
+	uiStatusFilter = ss.Backup()
 	updateFileInfo()
 }
 
