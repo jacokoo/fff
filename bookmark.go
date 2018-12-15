@@ -78,3 +78,26 @@ func addBookmark(name, path string) {
 	writeToFile()
 	gui <- uiBookmarkChanged
 }
+
+func deleteBookmark(name string) {
+	if name == homeName || name == rootName {
+		return
+	}
+
+	_, has := bookmarks[name]
+	if !has {
+		return
+	}
+
+	delete(bookmarks, name)
+	bks := make([]string, 0)
+	for _, v := range bookmarkKeys {
+		if v == name {
+			continue
+		}
+		bks = append(bks, v)
+	}
+	bookmarkKeys = bks
+	writeToFile()
+	gui <- uiBookmarkChanged
+}

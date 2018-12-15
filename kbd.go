@@ -132,6 +132,7 @@ var (
 		"ActionNewDir":             func() { enterInputMode(newDirInputer) },
 		"ActionRename":             func() { enterInputMode(renameInputer) },
 		"ActionAddBookmark":        func() { enterInputMode(addBookmarkInputer) },
+		"ActionDeleteBookmark":     func() { enterJumpMode(JumpModeDeleteBookmark, false) },
 	}
 
 	mode  = ModeNormal

@@ -16,6 +16,7 @@ const (
 	JumpModeAll JumpMode = iota
 	JumpModeBookmark
 	JumpModeCurrentDir
+	JumpModeDeleteBookmark
 )
 
 var (
@@ -150,14 +151,24 @@ func collectAllDir() []*jumpItem {
 	return items
 }
 
-func collectBookmark() []*jumpItem {
+func collectBookmark(forDelete bool) []*jumpItem {
 	items := make([]*jumpItem, 0)
 	collectList(uiBookmark.list, func(idx int, p *ui.Point) {
 		key := bookmarkKeys[idx]
-		items = append(items, &jumpItem{nil, func() bool {
+		if forDelete && (key == homeName || key == rootName) {
+			return
+		}
+		fn := func() bool {
 			wo.openRoot(bookmarks[key])
 			return true
-		}, p})
+		}
+		if forDelete {
+			fn = func() bool {
+				deleteBookmark(key)
+				return false
+			}
+		}
+		items = append(items, &jumpItem{nil, fn, p})
 	})
 	return items
 }
@@ -212,15 +223,19 @@ func collectCurrentPath() []*jumpItem {
 func enterJumpMode(md JumpMode, cj bool) {
 	switch md {
 	case JumpModeBookmark:
-		jumpItems = collectBookmark()
+		jumpItems = collectBookmark(false)
+	case JumpModeDeleteBookmark:
+		jumpItems = collectBookmark(true)
 	case JumpModeCurrentDir:
 		jumpItems = append(collectCurrentPath(), collectCurrentDir()...)
 	case JumpModeAll:
-		jumpItems = append(collectBookmark(), collectCurrentPath()...)
+		jumpItems = append(collectBookmark(false), collectCurrentPath()...)
 		jumpItems = append(jumpItems, collectAllDir()...)
 	}
 	keyThem(jumpItems)
-	jumpItems = append(jumpItems, collectGroups()...)
+	if md != JumpModeDeleteBookmark {
+		jumpItems = append(jumpItems, collectGroups()...)
+	}
 	continueJump = cj
 
 	gui <- uiJumpRefresh

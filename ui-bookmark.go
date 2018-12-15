@@ -19,7 +19,7 @@ func bookmarkNames(keys []string) ([]string, []int) {
 	hs := make([]int, 0)
 
 	for _, k := range keys {
-		ns = append(ns, fmt.Sprintf(" %s", k))
+		ns = append(ns, fmt.Sprintf("  %s", k))
 		hs = append(hs, 1)
 	}
 	return ns, hs
@@ -27,7 +27,7 @@ func bookmarkNames(keys []string) ([]string, []int) {
 
 func newBookmark(p *ui.Point, height int) *bookmark {
 	t := ui.NewText(p, "BOOKMARKS")
-	w := maxBookmarkNameWidth + 2
+	w := maxBookmarkNameWidth + 4
 	line := ui.NewHLine(p, w)
 
 	ns, hs := bookmarkNames(bookmarkKeys)
@@ -51,7 +51,7 @@ func (b *bookmark) MoveTo(p *ui.Point) *ui.Point {
 }
 
 func (b *bookmark) update() {
-	b.width = maxBookmarkNameWidth + 2
+	b.width = maxBookmarkNameWidth + 4
 	b.line.ChangeWidth(b.width)
 	ns, hs := bookmarkNames(bookmarkKeys)
 	b.list.SetData(ns, hs, -1)
