@@ -153,9 +153,9 @@ func collectAllDir() []*jumpItem {
 func collectBookmark() []*jumpItem {
 	items := make([]*jumpItem, 0)
 	collectList(uiBookmark.list, func(idx int, p *ui.Point) {
-		key := uiBookmark.keys[idx]
+		key := bookmarkKeys[idx]
 		items = append(items, &jumpItem{nil, func() bool {
-			wo.openRoot(wo.bookmark[key])
+			wo.openRoot(bookmarks[key])
 			return true
 		}, p})
 	})

@@ -23,6 +23,7 @@ binding:
     enter: ActionOpenFolderRight        # Open folder on right
     b:                                  # Prefix, Bookmark manage
       b: ActionToggleBookmark           # Toggle show bookmark
+      "n": ActionAddBookmark            # Bookmark current dir
       I: ActionJumpBookmark             # Jump over bookmarks
       i: ActionJumpBookmarkOnce         # Jump over bookmarks and stop after one jump
     g: ActionRefresh                    # Refresh current dir
@@ -43,8 +44,8 @@ binding:
     W: ActionJumpAll                    # Jump over items that can jump
     f: ActionStartFilter                # Filter
     F: ActionClearFilter                # Clear filter
-    "N": ActionNewDir                     # Create new dir in current dir
-    "n": ActionNewFile                    # Create new file in current dir
+    "N": ActionNewDir                   # Create new dir in current dir
+    "n": ActionNewFile                  # Create new file in current dir
     r: ActionRename                     # Rename current file
 
   # bindings for jump mode
@@ -64,6 +65,7 @@ color:
   file: default
   marked: yellow
   statusbar: cyan
+  statusbar-title: magenta
   tab: cyan
   jump: yellow
   filter: magenta

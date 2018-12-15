@@ -16,6 +16,11 @@ func NewHLine(p *Point, width int) *HLine {
 	return &HLine{NewText(p, strings.Repeat("─", width))}
 }
 
+// ChangeWidth change the line width
+func (h *HLine) ChangeWidth(width int) {
+	h.Text.SetValue(strings.Repeat("─", width))
+}
+
 // VLine vertical line
 type VLine struct {
 	token  rune

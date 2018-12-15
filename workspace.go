@@ -34,7 +34,6 @@ func (gr *group) shift() {
 }
 
 type workspace struct {
-	bookmark     map[string]string
 	groups       []*group
 	group        int
 	showBookmark bool
@@ -43,11 +42,7 @@ type workspace struct {
 func newWorkspace() *workspace {
 	gs := make([]*group, maxGroups)
 	gs[0] = newGroup(wd)
-	bo := map[string]string{
-		"ws": "/Users/guyong/ws",
-		"go": "/Users/guyong/ws/go",
-	}
-	return &workspace{bo, gs, 0, true}
+	return &workspace{gs, 0, true}
 }
 
 func (w *workspace) currentGroup() *group {

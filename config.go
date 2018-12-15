@@ -77,6 +77,7 @@ color:
   file: default
   marked: yellow
   statusbar: cyan
+  statusbar-title: red
   tab: cyan
   jump: yellow
   filter: magenta
@@ -202,7 +203,7 @@ func initConfig() *config {
 	c := &config{colors: make(map[string]*ui.Color)}
 	readYaml(data, c)
 
-	f, err := ioutil.ReadFile(filepath.Join(home, ".fff/config.yml"))
+	f, err := ioutil.ReadFile(filepath.Join(configDir, "config.yml"))
 	if err == nil {
 		readYaml(f, c)
 	}

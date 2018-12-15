@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"path/filepath"
 
 	"github.com/jacokoo/fff/ui"
 
@@ -13,13 +14,22 @@ const (
 )
 
 var (
-	wo      = newWorkspace()
-	home    = os.Getenv("HOME")
-	wd, _   = os.Getwd()
-	cfg     = initConfig()
-	quit    = make(chan int)
-	message string
+	wo        = newWorkspace()
+	home      = os.Getenv("HOME")
+	wd, _     = os.Getwd()
+	cfg       = initConfig()
+	quit      = make(chan int)
+	message   string
+	configDir string
 )
+
+func init() {
+	if len(home) == 0 {
+		home = "/root"
+	}
+	configDir = filepath.Join(home, ".fff")
+	initBookmark()
+}
 
 func main() {
 	ui.SetColors(cfg.colors)
@@ -31,9 +41,6 @@ func main() {
 	w, _ := termbox.Size()
 	maxColumns = w/columnWidth + 1
 
-	if len(home) == 0 {
-		home = "/root"
-	}
 	uiStart()
 	kbdStart()
 

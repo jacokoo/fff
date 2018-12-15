@@ -11,7 +11,6 @@ type bookmark struct {
 	title         *ui.Text
 	line          *ui.HLine
 	list          *ui.List
-	keys          []string
 	*ui.Drawable
 }
 
@@ -28,20 +27,12 @@ func bookmarkNames(keys []string) ([]string, []int) {
 
 func newBookmark(p *ui.Point, height int) *bookmark {
 	t := ui.NewText(p, "BOOKMARKS")
-	max := 9
-	keys := make([]string, 0)
-	for k := range wo.bookmark {
-		keys = append(keys, k)
-		if len(k) > max {
-			max = len(k)
-		}
-	}
-	max += 2
-	line := ui.NewHLine(p, max)
+	w := maxBookmarkNameWidth + 2
+	line := ui.NewHLine(p, w)
 
-	ns, hs := bookmarkNames(keys)
+	ns, hs := bookmarkNames(bookmarkKeys)
 	list := ui.NewList(p, -1, height-4, ns, hs)
-	return &bookmark{max, height, t, line, list, keys, ui.NewDrawable(p)}
+	return &bookmark{w, height, t, line, list, ui.NewDrawable(p)}
 }
 
 func (b *bookmark) Draw() *ui.Point {
@@ -60,6 +51,8 @@ func (b *bookmark) MoveTo(p *ui.Point) *ui.Point {
 }
 
 func (b *bookmark) update() {
-	ns, hs := bookmarkNames(b.keys)
+	b.width = maxBookmarkNameWidth + 2
+	b.line.ChangeWidth(b.width)
+	ns, hs := bookmarkNames(bookmarkKeys)
 	b.list.SetData(ns, hs, -1)
 }

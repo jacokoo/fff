@@ -29,6 +29,7 @@ const (
 	uiMarkChange
 	uiInputChange
 	uiQuitInput
+	uiBookmarkChanged
 )
 
 const (
@@ -62,15 +63,16 @@ var (
 	uiColumns        *ui.Columns
 	uiLists          []*FileList
 	uiStatusMessage  *ui.StatusBackup
-	uiStatusFilter   *ui.StatusBackup
+	uiStatusInput    *ui.StatusBackup
 	uiBookmark       *bookmark
 	uiJumpItems      []*ui.Text
 	maxColumns       = 5
 )
 
-func colorIndicator() *ui.Color { return cfg.color("indicator") }
-func colorJump() *ui.Color      { return cfg.color("jump") }
-func colorFilter() *ui.Color    { return cfg.color("filter") }
+func colorIndicator() *ui.Color      { return cfg.color("indicator") }
+func colorJump() *ui.Color           { return cfg.color("jump") }
+func colorFilter() *ui.Color         { return cfg.color("filter") }
+func colorStatusBarTitle() *ui.Color { return cfg.color("statusbar-title") }
 
 func handleUIEvent(ev int) {
 	switch ev {
@@ -140,13 +142,16 @@ func handleUIEvent(ev int) {
 		updateCurrent()
 		updateFileInfo()
 	case uiInputChange:
-		st := uiStatusFilter.Restore()
+		st := uiStatusInput.Restore()
 		st.Set(0, fmt.Sprintf(" %s ", inputer.Name()))
 		p := st.Set(1, inputer.Get())
 		termbox.SetCursor(p.X+1, p.Y)
 	case uiQuitInput:
 		termbox.SetCursor(-1, -1)
 		updateFileInfo()
+	case uiBookmarkChanged:
+		uiBookmark.update()
+		redrawColumns()
 	}
 }
 
@@ -269,10 +274,9 @@ func uiInit() {
 	ss.Add(0)
 	uiStatusMessage = ss.Backup()
 	si := ss.Add(2)
-	si.Color = colorFilter()
-	si.SetValue("FILTER ")
+	si.Color = colorStatusBarTitle()
 	ss.Add(0)
-	uiStatusFilter = ss.Backup()
+	uiStatusInput = ss.Backup()
 	updateFileInfo()
 }
 

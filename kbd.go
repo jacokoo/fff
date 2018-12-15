@@ -131,6 +131,7 @@ var (
 		"ActionNewFile":            func() { enterInputMode(newFileInputer) },
 		"ActionNewDir":             func() { enterInputMode(newDirInputer) },
 		"ActionRename":             func() { enterInputMode(renameInputer) },
+		"ActionAddBookmark":        func() { enterInputMode(addBookmarkInputer) },
 	}
 
 	mode  = ModeNormal
@@ -138,11 +139,12 @@ var (
 	input = make(chan rune)
 	kbd   = make(chan termbox.Event)
 
-	currentKbds    = cfg.normalKbds
-	keyPrefixed    = false
-	newFileInputer = newNameInput("NEW FILE", func(name string) { wo.newFile(name) })
-	newDirInputer  = newNameInput("NEW DIR", func(name string) { wo.newDir(name) })
-	renameInputer  = newNameInput("RENAME", func(name string) { wo.rename(name) })
+	currentKbds        = cfg.normalKbds
+	keyPrefixed        = false
+	newFileInputer     = newNameInput("NEW FILE", func(name string) { wo.newFile(name) })
+	newDirInputer      = newNameInput("NEW DIR", func(name string) { wo.newDir(name) })
+	renameInputer      = newNameInput("RENAME", func(name string) { wo.rename(name) })
+	addBookmarkInputer = newNameInput("BOOKMARK NAME", func(name string) { addBookmark(name, wo.currentDir()) })
 )
 
 func changeMode(to Mode) {
