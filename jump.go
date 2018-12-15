@@ -143,7 +143,7 @@ func collectAllDir() []*jumpItem {
 		colIdx := i
 		collectList(v.list, func(idx int, p *ui.Point) {
 			items = append(items, &jumpItem{nil, func() bool {
-				return wo.jumpTo(colIdx, idx)
+				return wo.jumpTo(colIdx, idx, continueJump)
 			}, p})
 		})
 	}
@@ -166,7 +166,7 @@ func collectCurrentDir() []*jumpItem {
 	items := make([]*jumpItem, 0)
 	collectList(uiLists[len(uiLists)-1].list, func(idx int, p *ui.Point) {
 		items = append(items, &jumpItem{nil, func() bool {
-			return wo.jumpTo(len(uiLists)-1, idx)
+			return wo.jumpTo(len(uiLists)-1, idx, continueJump)
 		}, p})
 	})
 	return items

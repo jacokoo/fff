@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 )
 
@@ -183,14 +185,14 @@ func (w *workspace) openRoot(path string) {
 	gui <- uiChangeRoot
 }
 
-func (w *workspace) jumpTo(colIdx, fileIdx int) bool {
+func (w *workspace) jumpTo(colIdx, fileIdx int, openIt bool) bool {
 	gu := w.currentGroup()
 	gu.columns = gu.columns[0 : colIdx+1]
 	co := gu.columns[len(gu.columns)-1]
 	co.current = fileIdx
 
 	fi := co.files[fileIdx]
-	if !fi.IsDir() {
+	if !openIt || !fi.IsDir() {
 		gui <- uiJumpTo
 		return false
 	}
@@ -209,9 +211,7 @@ func (w *workspace) jumpTo(colIdx, fileIdx int) bool {
 }
 
 func (w *workspace) refresh() {
-	co := w.currentColumn()
-	co.origin, _ = ioutil.ReadDir(co.path)
-	co.update()
+	w.currentColumn().refresh()
 	gui <- uiColumnContentChange
 }
 
@@ -234,5 +234,47 @@ func (w *workspace) clearFilter() {
 	co := w.currentColumn()
 	co.filter = ""
 	co.update()
+	gui <- uiColumnContentChange
+}
+
+func (w *workspace) newFile(name string) {
+	co := w.currentColumn()
+	pa := filepath.Join(co.path, name)
+	if _, err := os.Create(pa); err != nil {
+		message = "Can not create file " + pa
+		gui <- uiErrorMessage
+		return
+	}
+	co.refreshWithName(name)
+	gui <- uiColumnContentChange
+}
+
+func (w *workspace) newDir(name string) {
+	co := w.currentColumn()
+	pa := filepath.Join(co.path, name)
+	if err := os.MkdirAll(pa, 0755); err != nil {
+		message = "Can not create dir " + pa
+		gui <- uiErrorMessage
+		return
+	}
+	co.refreshWithName(name)
+	gui <- uiColumnContentChange
+}
+
+func (w *workspace) rename(name string) {
+	co := w.currentColumn()
+	if len(co.files) == 0 {
+		return
+	}
+
+	old := filepath.Join(co.path, co.files[co.current].Name())
+	new := filepath.Join(co.path, name)
+
+	if err := os.Rename(old, new); err != nil {
+		message = fmt.Sprintf("Can not rename %s to %s", co.files[co.current].Name(), name)
+		gui <- uiErrorMessage
+		return
+	}
+	co.refreshWithName(name)
 	gui <- uiColumnContentChange
 }

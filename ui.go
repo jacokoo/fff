@@ -140,9 +140,12 @@ func handleUIEvent(ev int) {
 		updateCurrent()
 		updateFileInfo()
 	case uiInputChange:
-		p := uiStatusFilter.Restore().Set(1, inputer.Get())
+		st := uiStatusFilter.Restore()
+		st.Set(0, fmt.Sprintf(" %s ", inputer.Name()))
+		p := st.Set(1, inputer.Get())
 		termbox.SetCursor(p.X+1, p.Y)
 	case uiQuitInput:
+		termbox.SetCursor(-1, -1)
 		updateFileInfo()
 	}
 }
@@ -202,8 +205,11 @@ func updateCurrent() {
 
 func updateFileInfo() {
 	co := wo.currentColumn()
-	fi := co.files[co.current]
-	m := fmt.Sprintf("%s  %s  %s", fi.ModTime().Format("2006-01-02 15:04:05"), fi.Mode().String(), fi.Name())
+	m := ""
+	if len(co.files) != 0 {
+		fi := co.files[co.current]
+		m = fmt.Sprintf("%s  %s  %s", fi.ModTime().Format("2006-01-02 15:04:05"), fi.Mode().String(), fi.Name())
+	}
 	uiStatusMessage.Restore().Set(0, m)
 }
 

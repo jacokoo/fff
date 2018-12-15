@@ -125,8 +125,12 @@ var (
 		"ActionJumpAll":            func() { enterJumpMode(JumpModeAll, true) },
 		"ActionStartFilter":        func() { enterInputMode(wo.currentColumn()) },
 		"ActionClearFilter":        func() { wo.clearFilter() },
-		"ActionQuitInputMode":      func() { quitInputMode() },
+		"ActionQuitInputMode":      func() { quitInputMode(false) },
+		"ActionAbortInputMode":     func() { quitInputMode(true) },
 		"ActionInputDelete":        func() { inputDelete() },
+		"ActionNewFile":            func() { enterInputMode(newFileInputer) },
+		"ActionNewDir":             func() { enterInputMode(newDirInputer) },
+		"ActionRename":             func() { enterInputMode(renameInputer) },
 	}
 
 	mode  = ModeNormal
@@ -134,8 +138,11 @@ var (
 	input = make(chan rune)
 	kbd   = make(chan termbox.Event)
 
-	currentKbds = cfg.normalKbds
-	keyPrefixed = false
+	currentKbds    = cfg.normalKbds
+	keyPrefixed    = false
+	newFileInputer = newNameInput("NEW FILE", func(name string) { wo.newFile(name) })
+	newDirInputer  = newNameInput("NEW DIR", func(name string) { wo.newDir(name) })
+	renameInputer  = newNameInput("RENAME", func(name string) { wo.rename(name) })
 )
 
 func changeMode(to Mode) {
@@ -228,6 +235,12 @@ func kbdHandleInput(key termbox.Key, ch rune) {
 		input <- ch
 		return
 	}
+
+	if key == termbox.KeySpace {
+		input <- ' '
+		return
+	}
+
 	doAction(key, ch)
 }
 

@@ -56,6 +56,9 @@ binding:
     W: ActionJumpAll                    # Jump over items that can jump
     f: ActionStartFilter                # Filter
     F: ActionClearFilter                # Clear filter
+    "N": ActionNewDir                     # Create new dir in current dir
+    "n": ActionNewFile                    # Create new file in current dir
+    r: ActionRename                     # Rename current file
 
   # bindings for jump mode
   jump:
@@ -64,6 +67,7 @@ binding:
 
   input:
     enter: ActionQuitInputMode
+    esc: ActionAbortInputMode
     backspace: ActionInputDelete
 
 color:

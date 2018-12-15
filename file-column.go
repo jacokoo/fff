@@ -167,6 +167,29 @@ func (co *column) move(n int) {
 	co.current = i
 }
 
+func (co *column) selectName(name string) {
+	for i, v := range co.files {
+		if v.Name() == name {
+			co.current = i
+			return
+		}
+	}
+}
+
+func (co *column) refresh() {
+	n := ""
+	if co.current < len(co.files) {
+		n = co.files[co.current].Name()
+	}
+	co.refreshWithName(n)
+}
+
+func (co *column) refreshWithName(name string) {
+	co.origin, _ = ioutil.ReadDir(co.path)
+	co.update()
+	co.selectName(name)
+}
+
 // Name return the label
 func (co *column) Name() string {
 	return "FILTER"
@@ -198,5 +221,5 @@ func (co *column) Delete() bool {
 }
 
 // End end input
-func (co *column) End() {
+func (co *column) End(abort bool) {
 }
