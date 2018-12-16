@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"os/exec"
+
 	termbox "github.com/nsf/termbox-go"
 )
 
@@ -23,6 +26,14 @@ type cmd struct {
 	action   string
 	prefix   bool
 	children []*cmd
+}
+
+func (c *cmd) match(ev termbox.Event) bool {
+	key, ch := ev.Key, ev.Ch
+	if (c.useKey && c.key == key) || (!c.useKey && c.ch == ch) {
+		return true
+	}
+	return false
 }
 
 func newCmd(key, action string, children []*cmd) *cmd {
@@ -133,12 +144,40 @@ var (
 		"ActionRename":             func() { enterInputMode(renameInputer) },
 		"ActionAddBookmark":        func() { enterInputMode(addBookmarkInputer) },
 		"ActionDeleteBookmark":     func() { enterJumpMode(JumpModeDeleteBookmark, false) },
+
+		"ActionDeleteFile": func() {
+			s := wo.deletePrompt()
+			if s == "" {
+				return
+			}
+			deleteFileInputer.title = s
+			enterInputMode(deleteFileInputer)
+		},
+
+		"ActionEdit": func() {
+			file, err := wo.currentFile()
+			if err != nil {
+				return
+			}
+			command = cfg.cmd(fmt.Sprintf("%s %s", cfg.editor, file))
+		},
+		"ActionView": func() {
+			file, err := wo.currentFile()
+			if err != nil {
+				return
+			}
+			command = cfg.cmd(fmt.Sprintf("%s %s", cfg.pager, file))
+		},
+		"ActionShell": func() {
+			command = exec.Command(cfg.shell)
+		},
 	}
 
-	mode  = ModeNormal
-	jump  = make(chan rune)
-	input = make(chan rune)
-	kbd   = make(chan termbox.Event)
+	mode    = ModeNormal
+	jump    = make(chan rune)
+	input   = make(chan rune)
+	kbd     = make(chan termbox.Event)
+	kbdQuit = make(chan bool)
 
 	currentKbds        = cfg.normalKbds
 	keyPrefixed        = false
@@ -146,6 +185,12 @@ var (
 	newDirInputer      = newNameInput("NEW DIR", func(name string) { wo.newDir(name) })
 	renameInputer      = newNameInput("RENAME", func(name string) { wo.rename(name) })
 	addBookmarkInputer = newNameInput("BOOKMARK NAME", func(name string) { addBookmark(name, wo.currentDir()) })
+
+	deleteFileInputer = newNameInput("", func(name string) {
+		if name == "y" {
+			wo.deleteFiles()
+		}
+	})
 )
 
 func changeMode(to Mode) {
@@ -168,18 +213,15 @@ func restoreKbds() {
 	}
 }
 
-func doAction(key termbox.Key, ch rune) {
-	if key == termbox.KeyEsc && keyPrefixed {
+func doAction(ev termbox.Event) {
+	if ev.Key == termbox.KeyEsc && keyPrefixed {
 		restoreKbds()
 		return
 	}
 
 	var c *cmd
 	for _, v := range currentKbds {
-		if ch == 0 && v.useKey && v.key == key {
-			c = v
-			break
-		} else if !v.useKey && v.ch == ch {
+		if v.match(ev) {
 			c = v
 			break
 		}
@@ -206,58 +248,75 @@ func doAction(key termbox.Key, ch rune) {
 
 func isQuit(ev termbox.Event) bool {
 	for _, kb := range currentKbds {
-		if kb.action == "ActionQuit" {
-			key, ch := ev.Key, ev.Ch
-			if kb.useKey && kb.key == key {
-				return true
-			}
-
-			if !kb.useKey && kb.ch == ch {
-				return true
-			}
+		if kb.match(ev) && kb.action == "ActionQuit" {
+			return true
 		}
 	}
 
 	return false
 }
 
-func kbdHandleNormal(key termbox.Key, ch rune) {
-	doAction(key, ch)
-}
-
-func kbdHandleJump(key termbox.Key, ch rune) {
-	if ch != 0 {
-		jump <- ch
-		return
-	}
-	doAction(key, ch)
-}
-
-func kbdHandleInput(key termbox.Key, ch rune) {
-	if ch != 0 {
-		input <- ch
-		return
+func isShell(ev termbox.Event) bool {
+	if mode != ModeNormal {
+		return false
 	}
 
-	if key == termbox.KeySpace {
+	for _, kb := range currentKbds {
+		if !kb.match(ev) {
+			continue
+		}
+		if kb.action == "ActionShell" {
+			return true
+		}
+		if kb.action == "ActionEdit" || kb.action == "ActionView" {
+			_, err := wo.currentFile()
+			return err == nil
+		}
+	}
+
+	return false
+}
+
+func kbdHandleNormal(ev termbox.Event) {
+	doAction(ev)
+}
+
+func kbdHandleJump(ev termbox.Event) {
+	if ev.Ch != 0 {
+		jump <- ev.Ch
+		return
+	}
+	doAction(ev)
+}
+
+func kbdHandleInput(ev termbox.Event) {
+	if ev.Ch != 0 {
+		input <- ev.Ch
+		return
+	}
+
+	if ev.Key == termbox.KeySpace {
 		input <- ' '
 		return
 	}
 
-	doAction(key, ch)
+	doAction(ev)
 }
 
 func handleKeyEvent() {
 	for {
-		ev := <-kbd
-		ch, key := ev.Ch, ev.Key
-		switch mode {
-		case ModeInput:
-			kbdHandleInput(key, ch)
-		case ModeJump:
-			kbdHandleJump(key, ch)
-		case ModeNormal:
-			kbdHandleNormal(key, ch)
+		select {
+		case ev := <-kbd:
+			switch mode {
+			case ModeInput:
+				kbdHandleInput(ev)
+			case ModeJump:
+				kbdHandleJump(ev)
+			case ModeNormal:
+				kbdHandleNormal(ev)
+			}
+		case <-kbdQuit:
+			return
 		}
 	}
 }

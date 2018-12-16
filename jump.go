@@ -153,6 +153,9 @@ func collectAllDir() []*jumpItem {
 
 func collectBookmark(forDelete bool) []*jumpItem {
 	items := make([]*jumpItem, 0)
+	if !wo.showBookmark {
+		return items
+	}
 	collectList(uiBookmark.list, func(idx int, p *ui.Point) {
 		key := bookmarkKeys[idx]
 		if forDelete && (key == homeName || key == rootName) {

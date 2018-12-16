@@ -147,6 +147,22 @@ func (co *column) toggleMark() {
 	co.markes = append(co.markes[:ii], co.markes[ii+1:]...)
 }
 
+func (co *column) getMarkedFiles() []os.FileInfo {
+	if len(co.files) == 0 {
+		return nil
+	}
+
+	if len(co.markes) == 0 {
+		return []os.FileInfo{co.files[co.current]}
+	}
+
+	re := make([]os.FileInfo, len(co.markes))
+	for i, v := range co.markes {
+		re[i] = co.files[v]
+	}
+	return re
+}
+
 func (co *column) unmarkAll() {
 	co.markes = nil
 }

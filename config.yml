@@ -48,6 +48,10 @@ binding:
     "+": ActionNewDir                     # Create new dir in current dir
     "N": ActionNewFile                    # Create new file in current dir
     "R": ActionRename                     # Rename current file
+    "D": ActionDeleteFile                 # Delete marked files or current file
+    "!": ActionShell                      # Run shell
+    "e": ActionEdit                       # Run editor
+    "v": ActionView                       # Run pager
 
   # bindings for jump mode
   jump:
@@ -71,3 +75,7 @@ color:
   jump: yellow
   filter: magenta
   indicator: green
+
+editor: vi
+shell: sh
+pager: less

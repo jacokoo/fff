@@ -54,6 +54,7 @@ func last() *FileList {
 
 var (
 	gui              = make(chan int)
+	guiQuit          = make(chan bool)
 	guiAck           = make(chan bool)
 	uiNeedAck        = false
 	uiTab            *ui.Tab
@@ -78,6 +79,7 @@ func handleUIEvent(ev int) {
 	switch ev {
 	case uiErrorMessage:
 		uiStatusMessage.Restore().Set(0, message)
+		message = ""
 	case uiChangeGroup:
 		uiTab.SwitchTo(wo.group)
 		uiInitColumns()
@@ -282,16 +284,42 @@ func uiInit() {
 
 func startEventLoop() {
 	for {
-		handleUIEvent(<-gui)
-		termbox.Flush()
-		if uiNeedAck {
-			guiAck <- true
+		select {
+		case ev := <-gui:
+			handleUIEvent(ev)
+			termbox.Flush()
+			if uiNeedAck {
+				guiAck <- true
+			}
+		case <-guiQuit:
+			return
 		}
 	}
 }
 
 func uiStart() {
 	uiInit()
+	termbox.Flush()
+	go startEventLoop()
+}
+
+func uiRedraw() {
+	uiTab.Draw()
+	uiCurrent.Draw()
+	uiColumns.Draw()
+	for _, v := range uiLists {
+		v.Draw()
+	}
+	uiIndicator.Draw()
+	if wo.showBookmark {
+		uiBookmark.Draw()
+	}
+	if message != "" {
+		uiStatusMessage.Restore().Set(0, message)
+		message = ""
+	} else {
+		updateFileInfo()
+	}
 	termbox.Flush()
 	go startEventLoop()
 }

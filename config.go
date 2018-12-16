@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/jacokoo/fff/ui"
@@ -53,14 +55,18 @@ binding:
     "g": ActionJumpCurrentDirOnce         # Jump over current dir and stop after one jump
     "G": ActionJumpCurrentDir             # Jump over current dir
     "i": ActionJumpAllOnce                # Jump over items that can jump and stop after one jump
-	"I": ActionJumpAll                    # Jump over items that can jump
-	"W": ActionJumpBookmark               # Jump over bookmarks
-	"w": ActionJumpBookmarkOnce           # Jump over bookmarks and stop after one jump
+    "I": ActionJumpAll                    # Jump over items that can jump
+    "W": ActionJumpBookmark               # Jump over bookmarks
+    "w": ActionJumpBookmarkOnce           # Jump over bookmarks and stop after one jump
     "f": ActionStartFilter                # Filter
     "F": ActionClearFilter                # Clear filter
     "+": ActionNewDir                     # Create new dir in current dir
     "N": ActionNewFile                    # Create new file in current dir
     "R": ActionRename                     # Rename current file
+    "D": ActionDeleteFile                 # Delete marked files or current file
+    "!": ActionShell                      # Run shell
+    "e": ActionEdit                       # Run editor
+    "v": ActionView                       # Run pager
 
   # bindings for jump mode
   jump:
@@ -85,6 +91,9 @@ color:
   filter: magenta
   indicator: green
 
+editor: vi
+shell: sh
+pager: less
 `)
 
 var colorMap = map[string]termbox.Attribute{
@@ -104,6 +113,9 @@ type config struct {
 	jumpKbds   []*cmd
 	inputKbds  []*cmd
 	colors     map[string]*ui.Color
+	editor     string
+	shell      string
+	pager      string
 }
 
 func (c *config) color(name string) *ui.Color {
@@ -190,24 +202,52 @@ func readBindings(ds interface{}, cfg *config) {
 func readYaml(ds []byte, cfg *config) {
 	var mp map[string]interface{}
 	yaml.Unmarshal(ds, &mp)
-	co, has := mp["color"]
+	vv, has := mp["color"]
 	if has {
-		readColors(co, cfg)
+		readColors(vv, cfg)
 	}
 
-	bd, has := mp["binding"]
+	vv, has = mp["binding"]
 	if has {
-		readBindings(bd, cfg)
+		readBindings(vv, cfg)
+	}
+
+	vv, has = mp["shell"]
+	if has {
+		cfg.shell = vv.(string)
+	}
+
+	vv, has = mp["editor"]
+	if has {
+		cfg.editor = vv.(string)
+	}
+
+	vv, has = mp["pager"]
+	if has {
+		cfg.pager = vv.(string)
 	}
 }
 
+func (c *config) cmd(args string) *exec.Cmd {
+	return exec.Command(c.shell, "-c", args)
+}
+
 func initConfig() *config {
-	c := &config{colors: make(map[string]*ui.Color)}
+	c := &config{colors: make(map[string]*ui.Color), shell: "", editor: "", pager: ""}
 	readYaml(data, c)
 
 	f, err := ioutil.ReadFile(filepath.Join(configDir, "config.yml"))
 	if err == nil {
 		readYaml(f, c)
+	}
+
+	shell := os.Getenv("SHELL")
+	if shell != "" {
+		c.shell = shell
+	}
+
+	for _, v := range c.normalKbds {
+		fmt.Println(string(v.ch), v.action)
 	}
 
 	return c

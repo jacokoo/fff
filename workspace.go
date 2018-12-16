@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -51,6 +52,19 @@ func (w *workspace) currentGroup() *group {
 
 func (w *workspace) currentDir() string {
 	return wo.groups[wo.group].currentDir()
+}
+
+func (w *workspace) currentFile() (string, error) {
+	co := w.currentColumn()
+	if len(co.files) == 0 {
+		return "", errors.New("no file")
+	}
+
+	if co.files[co.current].IsDir() {
+		return "", errors.New("is dir, not a file")
+	}
+
+	return filepath.Join(co.path, co.files[co.current].Name()), nil
 }
 
 func (w *workspace) currentColumn() *column {
@@ -271,5 +285,82 @@ func (w *workspace) rename(name string) {
 		return
 	}
 	co.refreshWithName(name)
+	gui <- uiColumnContentChange
+}
+
+func (w *workspace) deletePrompt() string {
+	files := w.currentColumn().getMarkedFiles()
+	if len(files) == 0 {
+		return ""
+	}
+
+	fc, dc := 0, 0
+	for _, v := range files {
+		if v.IsDir() {
+			dc++
+		} else {
+			fc++
+		}
+	}
+
+	m := "Selected "
+	if fc != 0 {
+		m += fmt.Sprintf("%d files", fc)
+	}
+	if fc != 0 && dc != 0 {
+		m += " and "
+	}
+	if dc != 0 {
+		m += fmt.Sprintf("%d dirs", dc)
+	}
+
+	m += ". Are you sure to delete them? (y/n)"
+	return m
+}
+
+func (w *workspace) deleteFiles() {
+	co := w.currentColumn()
+	if len(co.files) == 0 {
+		return
+	}
+
+	selected := co.files[co.current].Name()
+	files := co.getMarkedFiles()
+	fc, dc := 0, 0
+	for _, v := range files {
+		s := filepath.Join(co.path, v.Name())
+		if v.IsDir() {
+			err := os.RemoveAll(s)
+			if err == nil {
+				dc++
+			}
+			continue
+		}
+
+		err := os.Remove(s)
+		if err == nil {
+			fc++
+		}
+	}
+
+	m := ""
+	if fc == 0 && dc == 0 {
+		m = "No files or dirs"
+	}
+	if fc != 0 {
+		m += fmt.Sprintf("%d files", fc)
+	}
+	if fc != 0 && dc != 0 {
+		m += " and "
+	}
+	if dc != 0 {
+		m += fmt.Sprintf("%d dirs", dc)
+	}
+
+	m += " Deleted"
+	message = m
+	gui <- uiErrorMessage
+
+	co.refreshWithName(selected)
 	gui <- uiColumnContentChange
 }
