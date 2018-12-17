@@ -156,18 +156,23 @@ func collectBookmark(forDelete bool) []*jumpItem {
 	if !wo.showBookmark {
 		return items
 	}
+	bk := wo.bookmark
 	collectList(uiBookmark.list, func(idx int, p *ui.Point) {
-		key := bookmarkKeys[idx]
-		if forDelete && (key == homeName || key == rootName) {
+		key := bk.Names[idx]
+		if forDelete && wo.bookmark.IsFixed(key) {
 			return
 		}
 		fn := func() bool {
-			wo.openRoot(bookmarks[key])
+			v, has := bk.Get(key)
+			if !has {
+				return false
+			}
+			wo.openRoot(v)
 			return true
 		}
 		if forDelete {
 			fn = func() bool {
-				deleteBookmark(key)
+				wo.deleteBookmark(key)
 				return false
 			}
 		}

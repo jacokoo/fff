@@ -186,7 +186,7 @@ var (
 	newFileInputer     = newNameInput("NEW FILE", func(name string) { wo.newFile(name) })
 	newDirInputer      = newNameInput("NEW DIR", func(name string) { wo.newDir(name) })
 	renameInputer      = newNameInput("RENAME", func(name string) { wo.rename(name) })
-	addBookmarkInputer = newNameInput("BOOKMARK NAME", func(name string) { addBookmark(name, wo.currentDir()) })
+	addBookmarkInputer = newNameInput("BOOKMARK NAME", func(name string) { wo.addBookmark(name, wo.currentDir()) })
 
 	deleteFileInputer = newNameInput("", func(name string) {
 		if name == "y" {

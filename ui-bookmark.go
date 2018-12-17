@@ -27,10 +27,10 @@ func bookmarkNames(keys []string) ([]string, []int) {
 
 func newBookmark(p *ui.Point, height int) *bookmark {
 	t := ui.NewText(p, "BOOKMARKS")
-	w := maxBookmarkNameWidth + 4
+	w := wo.bookmark.MaxWidth + 4
 	line := ui.NewHLine(p, w)
 
-	ns, hs := bookmarkNames(bookmarkKeys)
+	ns, hs := bookmarkNames(wo.bookmark.Names)
 	list := ui.NewList(p, -1, height-4, ns, hs)
 	return &bookmark{w, height, t, line, list, ui.NewDrawable(p)}
 }
@@ -51,8 +51,8 @@ func (b *bookmark) MoveTo(p *ui.Point) *ui.Point {
 }
 
 func (b *bookmark) update() {
-	b.width = maxBookmarkNameWidth + 4
+	b.width = wo.bookmark.MaxWidth + 4
 	b.line.ChangeWidth(b.width)
-	ns, hs := bookmarkNames(bookmarkKeys)
+	ns, hs := bookmarkNames(wo.bookmark.Names)
 	b.list.SetData(ns, hs, -1)
 }

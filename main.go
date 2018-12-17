@@ -26,7 +26,6 @@ var (
 )
 
 func init() {
-	initBookmark()
 	ui.SetColors(cfg.colors)
 }
 

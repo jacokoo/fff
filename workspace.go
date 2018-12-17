@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"os"
+	"path/filepath"
 
 	"github.com/jacokoo/fff/model"
 )
@@ -11,6 +11,7 @@ type workspace struct {
 	groups       []model.Group
 	group        int
 	showBookmark bool
+	bookmark     *model.Bookmark
 }
 
 func newWorkspace() *workspace {
@@ -21,7 +22,7 @@ func newWorkspace() *workspace {
 	}
 	gs[0] = g
 
-	return &workspace{gs, 0, true}
+	return &workspace{gs, 0, true, model.NewBookmark(filepath.Join(configDir, "bookmarks"))}
 }
 
 func (w *workspace) currentGroup() model.Group {
@@ -283,14 +284,14 @@ func (w *workspace) deleteFiles() {
 	fc, dc := 0, 0
 	for _, v := range files {
 		if v.IsDir() {
-			err := os.RemoveAll(v.Path())
+			err := g.DeleteDir(v.Path())
 			if err == nil {
 				dc++
 			}
 			continue
 		}
 
-		err := os.Remove(v.Path())
+		err := g.DeleteFile(v.Path())
 		if err == nil {
 			fc++
 		}
@@ -308,4 +309,24 @@ func (w *workspace) deleteFiles() {
 		co.Select(0)
 	}
 	gui <- uiColumnContentChange
+}
+
+func (w *workspace) addBookmark(name, value string) {
+	err := w.bookmark.Add(name, value)
+	if err != nil {
+		message = err.Error()
+		gui <- uiErrorMessage
+		return
+	}
+	gui <- uiBookmarkChanged
+}
+
+func (w *workspace) deleteBookmark(name string) {
+	err := w.bookmark.Delete(name)
+	if err != nil {
+		message = err.Error()
+		gui <- uiErrorMessage
+		return
+	}
+	gui <- uiBookmarkChanged
 }
