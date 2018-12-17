@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/jacokoo/fff/model"
 	"github.com/jacokoo/fff/ui"
 	termbox "github.com/nsf/termbox-go"
 )
@@ -37,8 +38,8 @@ const (
 	expandedColumnWidth int = 80
 )
 
-func cwidth(col *column) int {
-	if col.expanded {
+func cwidth(col model.Column) int {
+	if col.IsShowDetail() {
 		return expandedColumnWidth
 	}
 	return columnWidth
@@ -89,12 +90,12 @@ func handleUIEvent(ev int) {
 	case uiToggleDetail:
 		uiColumns.Remove()
 		list := last()
-		if list.col.expanded {
+		if list.col.IsShowDetail() {
 			idx := uiColumns.Add(ccwidth())
 			uiColumns.ClearAt(idx)
 		}
 		list.update()
-		if !list.col.expanded {
+		if !list.col.IsShowDetail() {
 			uiColumns.Add(ccwidth())
 		}
 		updateCurrent()
@@ -215,9 +216,10 @@ func updateCurrent() {
 func updateFileInfo() {
 	co := wo.currentColumn()
 	m := ""
-	if len(co.files) != 0 {
-		fi := co.files[co.current]
+	fi, err := co.CurrentFile()
+	if err == nil {
 		m = fmt.Sprintf("%s  %s  %s", fi.ModTime().Format("2006-01-02 15:04:05"), fi.Mode().String(), fi.Name())
+
 	}
 	uiStatusMessage.Restore().Set(0, m)
 }
@@ -231,7 +233,7 @@ func uiInitColumns() {
 		uiBookmark.MoveTo(p)
 	}
 
-	for _, v := range wo.currentGroup().columns {
+	for _, v := range wo.currentGroup().Columns() {
 		ii := uiColumns.Add(cwidth(v))
 		p := uiColumns.StartAt(ii)
 		list := NewFileList(p, v, uiColumns.Height-2)

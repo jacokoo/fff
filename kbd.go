@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os/exec"
 
+	"github.com/jacokoo/fff/model"
+
 	termbox "github.com/nsf/termbox-go"
 )
 
@@ -107,9 +109,9 @@ var (
 
 	actions = map[string]func(){
 		"ActionQuit":               func() {},
-		"ActionSortByName":         func() { wo.sort(orderName) },
-		"ActionSortByMtime":        func() { wo.sort(orderMTime) },
-		"ActionSortBySize":         func() { wo.sort(orderSize) },
+		"ActionSortByName":         func() { wo.sort(model.OrderByName) },
+		"ActionSortByMtime":        func() { wo.sort(model.OrderByMTime) },
+		"ActionSortBySize":         func() { wo.sort(model.OrderBySize) },
 		"ActionToggleHidden":       func() { wo.toggleHidden() },
 		"ActionToggleDetail":       func() { wo.toggleDetails() },
 		"ActionMoveDown":           func() { wo.move(1) },
@@ -134,7 +136,7 @@ var (
 		"ActionJumpBookmark":       func() { enterJumpMode(JumpModeBookmark, true) },
 		"ActionJumpAllOnce":        func() { enterJumpMode(JumpModeAll, false) },
 		"ActionJumpAll":            func() { enterJumpMode(JumpModeAll, true) },
-		"ActionStartFilter":        func() { enterInputMode(wo.currentColumn()) },
+		"ActionStartFilter":        func() { enterInputMode(&columnInputer{wo.currentColumn()}) },
 		"ActionClearFilter":        func() { wo.clearFilter() },
 		"ActionQuitInputMode":      func() { quitInputMode(false) },
 		"ActionAbortInputMode":     func() { quitInputMode(true) },
@@ -155,18 +157,18 @@ var (
 		},
 
 		"ActionEdit": func() {
-			file, err := wo.currentFile()
-			if err != nil {
+			file, err := wo.currentColumn().CurrentFile()
+			if err != nil || file.IsDir() {
 				return
 			}
-			command = cfg.cmd(fmt.Sprintf("%s %s", cfg.editor, file))
+			command = cfg.cmd(fmt.Sprintf("%s %s", cfg.editor, file.Path()))
 		},
 		"ActionView": func() {
-			file, err := wo.currentFile()
-			if err != nil {
+			file, err := wo.currentColumn().CurrentFile()
+			if err != nil || file.IsDir() {
 				return
 			}
-			command = cfg.cmd(fmt.Sprintf("%s %s", cfg.pager, file))
+			command = cfg.cmd(fmt.Sprintf("%s %s", cfg.pager, file.Path()))
 		},
 		"ActionShell": func() {
 			command = exec.Command(cfg.shell)
@@ -269,7 +271,7 @@ func isShell(ev termbox.Event) bool {
 			return true
 		}
 		if kb.action == "ActionEdit" || kb.action == "ActionView" {
-			_, err := wo.currentFile()
+			_, err := wo.currentColumn().CurrentFile()
 			return err == nil
 		}
 	}

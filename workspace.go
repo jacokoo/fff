@@ -1,134 +1,87 @@
 package main
 
 import (
-	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
+
+	"github.com/jacokoo/fff/model"
 )
 
-type group struct {
-	path    string
-	columns []*column
-}
-
-func newGroup(path string) *group {
-	return &group{path, []*column{newColumn(path)}}
-}
-
-func (gr *group) currentDir() string {
-	co := gr.columns[len(gr.columns)-1]
-	return co.path
-}
-
-func (gr *group) currentSelect() string {
-	co := gr.columns[len(gr.columns)-1]
-	return filepath.Join(co.path, co.files[co.current].Name())
-}
-
-func (gr *group) shift() {
-	if len(gr.columns) == 1 {
-		return
-	}
-	gr.columns = gr.columns[1:]
-}
-
 type workspace struct {
-	groups       []*group
+	groups       []model.Group
 	group        int
 	showBookmark bool
 }
 
 func newWorkspace() *workspace {
-	gs := make([]*group, maxGroups)
-	gs[0] = newGroup(wd)
+	gs := make([]model.Group, maxGroups)
+	g, err := model.NewLocalGroup(wd)
+	if err != nil {
+		panic(err)
+	}
+	gs[0] = g
+
 	return &workspace{gs, 0, true}
 }
 
-func (w *workspace) currentGroup() *group {
+func (w *workspace) currentGroup() model.Group {
 	return w.groups[w.group]
 }
 
 func (w *workspace) currentDir() string {
-	return wo.groups[wo.group].currentDir()
+	return w.currentGroup().Path()
 }
 
-func (w *workspace) currentFile() (string, error) {
-	co := w.currentColumn()
-	if len(co.files) == 0 {
-		return "", errors.New("no file")
-	}
-
-	if co.files[co.current].IsDir() {
-		return "", errors.New("is dir, not a file")
-	}
-
-	return filepath.Join(co.path, co.files[co.current].Name()), nil
+func (w *workspace) currentColumn() model.Column {
+	return w.currentGroup().Current()
 }
 
-func (w *workspace) currentColumn() *column {
-	cols := w.currentGroup().columns
-	return cols[len(cols)-1]
-}
-
-func (w *workspace) sort(order int) {
-	w.currentColumn().sort(order)
+func (w *workspace) sort(order model.Order) {
+	w.currentColumn().Sort(order)
 	gui <- uiColumnContentChange
 }
 
 func (w *workspace) toggleHidden() {
 	co := w.currentColumn()
-	co.showHidden = !co.showHidden
-	co.update()
+	co.ToggleHidden()
+	co.Update()
 	gui <- uiColumnContentChange
 }
 
 func (w *workspace) toggleDetails() {
-	co := w.currentColumn()
-	co.expanded = !co.expanded
+	w.currentColumn().ToggleDetail()
 	gui <- uiToggleDetail
 }
 
 func (w *workspace) move(n int) {
-	co := w.currentColumn()
-	if len(co.files) == 0 {
-		return
+	if w.currentColumn().Move(n) {
+		gui <- uiChangeSelect
 	}
-	co.move(n)
-	gui <- uiChangeSelect
 }
 
 func (w *workspace) moveToFirst() {
-	co := w.currentColumn()
-	w.move(-co.current)
+	if w.currentColumn().SelectFirst() {
+		gui <- uiChangeSelect
+	}
 }
 
 func (w *workspace) moveToLast() {
-	co := w.currentColumn()
-	w.move(len(co.files) - co.current - 1)
+	if w.currentColumn().SelectLast() {
+		gui <- uiChangeSelect
+	}
 }
 
 func (w *workspace) openRight() {
 	gu := w.currentGroup()
-	co := gu.columns[len(gu.columns)-1]
-	if len(co.files) == 0 {
+	err := gu.OpenDir()
+	if err != nil {
+		message = err.Error()
+		gui <- uiErrorMessage
 		return
 	}
-	fi := co.files[co.current]
 
-	if !fi.IsDir() {
-		return
-	}
-	co.unmarkAll()
-	co.expanded = false
-
-	pa := filepath.Join(co.path, fi.Name())
-	nc := newColumn(pa)
-	gu.path = pa
-	gu.columns = append(gu.columns, nc)
-	if len(gu.columns) >= maxColumns {
-		gu.shift()
+	if len(gu.Columns()) >= maxColumns {
+		gu.Shift()
 		gui <- uiOpenRightWithShift
 	} else {
 		gui <- uiOpenRight
@@ -137,27 +90,18 @@ func (w *workspace) openRight() {
 
 func (w *workspace) closeRight() {
 	gu := w.currentGroup()
-	if len(gu.columns) == 1 {
-		dir := filepath.Dir(gu.path)
-		if dir == gu.path {
-			return
-		}
-		gu.path = dir
-		co := gu.columns[0]
-		co.path = dir
-		co.origin, _ = ioutil.ReadDir(dir)
-		co.update()
-
-		gui <- uiToParent
+	switch re := gu.CloseDir(); re {
+	case model.CloseNothing:
 		return
+	case model.CloseSuccess:
+		gui <- uiCloseRight
+	case model.CloseToParent:
+		gui <- uiToParent
 	}
-	gu.columns = gu.columns[:len(gu.columns)-1]
-	gu.path = gu.columns[len(gu.columns)-1].path
-	gui <- uiCloseRight
 }
 
 func (w *workspace) shift() {
-	w.currentGroup().shift()
+	w.currentGroup().Shift()
 	gui <- uiShift
 }
 
@@ -169,127 +113,141 @@ func (w *workspace) toggleBookmark() {
 func (w *workspace) changeGroup(idx int) {
 	w.group = idx
 	if w.groups[idx] == nil {
-		w.groups[idx] = newGroup(wd)
+		g, _ := model.NewLocalGroup(wd)
+		w.groups[idx] = g
 	}
 	gui <- uiChangeGroup
 }
 
 func (w *workspace) openRoot(path string) {
-	fs, err := ioutil.ReadDir(path)
+	err := w.currentGroup().OpenRoot(path)
 	if err != nil {
 		message = "Can not read dir " + path
 		gui <- uiErrorMessage
 		return
 	}
-
-	gu := w.currentGroup()
-	gu.path = path
-
-	gu.columns = gu.columns[:1]
-	co := gu.columns[0]
-	co.origin = fs
-	co.path = path
-	co.update()
-
 	gui <- uiChangeRoot
 }
 
 func (w *workspace) jumpTo(colIdx, fileIdx int, openIt bool) bool {
 	gu := w.currentGroup()
-	gu.columns = gu.columns[0 : colIdx+1]
-	co := gu.columns[len(gu.columns)-1]
-	co.current = fileIdx
+	suc := gu.JumpTo(colIdx, fileIdx)
+	if !suc {
+		return false
+	}
+	co := gu.Current()
 
-	fi := co.files[fileIdx]
-	if !openIt || !fi.IsDir() {
+	fi, err := co.CurrentFile()
+	if err != nil || !openIt || !fi.IsDir() {
 		gui <- uiJumpTo
 		return false
 	}
-	co.unmarkAll()
-	co.expanded = false
 
-	pa := filepath.Join(co.path, fi.Name())
-	nc := newColumn(pa)
-	gu.path = pa
-	gu.columns = append(gu.columns, nc)
-	if len(gu.columns) >= maxColumns {
-		gu.columns = gu.columns[1:]
+	co.Update()
+	if co.IsShowDetail() {
+		co.ToggleDetail()
+	}
+
+	gu.OpenDir()
+	if len(gu.Columns()) >= maxColumns {
+		gu.Shift()
 	}
 	gui <- uiJumpTo
 	return true
 }
 
 func (w *workspace) refresh() {
-	w.currentColumn().refresh()
+	w.currentGroup().Refresh()
 	gui <- uiColumnContentChange
 }
 
 func (w *workspace) toggleMark() {
 	co := w.currentColumn()
-	co.toggleMark()
-	co.move(1)
-
+	co.ToggleMark()
+	co.Move(1)
 	gui <- uiMarkChange
 }
 
 func (w *workspace) clearMark() {
-	co := w.currentColumn()
-	co.unmarkAll()
-
+	w.currentColumn().ClearMark()
 	gui <- uiMarkChange
 }
 
 func (w *workspace) clearFilter() {
 	co := w.currentColumn()
-	co.filter = ""
-	co.update()
+	co.SetFilter("")
+	co.Update()
 	gui <- uiColumnContentChange
 }
 
 func (w *workspace) newFile(name string) {
-	co := w.currentColumn()
-	pa := filepath.Join(co.path, name)
-	if _, err := os.Create(pa); err != nil {
-		message = "Can not create file " + pa
+	g := w.currentGroup()
+	if err := g.NewFile(g.Path(), name); err != nil {
+		message = err.Error()
 		gui <- uiErrorMessage
 		return
 	}
-	co.refreshWithName(name)
+	g.Refresh()
+	g.Current().SelectByName(name)
 	gui <- uiColumnContentChange
 }
 
 func (w *workspace) newDir(name string) {
-	co := w.currentColumn()
-	pa := filepath.Join(co.path, name)
-	if err := os.MkdirAll(pa, 0755); err != nil {
-		message = "Can not create dir " + pa
+	g := w.currentGroup()
+	if err := g.NewDir(g.Path(), name); err != nil {
+		message = err.Error()
 		gui <- uiErrorMessage
 		return
 	}
-	co.refreshWithName(name)
+	g.Refresh()
+	g.Current().SelectByName(name)
 	gui <- uiColumnContentChange
 }
 
 func (w *workspace) rename(name string) {
-	co := w.currentColumn()
-	if len(co.files) == 0 {
-		return
-	}
-
-	old := filepath.Join(co.path, co.files[co.current].Name())
-	new := filepath.Join(co.path, name)
-
-	if err := os.Rename(old, new); err != nil {
-		message = fmt.Sprintf("Can not rename %s to %s", co.files[co.current].Name(), name)
+	g := w.currentGroup()
+	co := g.Current()
+	fi, err := co.CurrentFile()
+	if err != nil {
+		message = "no file selected"
 		gui <- uiErrorMessage
 		return
 	}
-	co.refreshWithName(name)
+
+	if err := g.Rename(g.Path(), fi.Name(), name); err != nil {
+		message = fmt.Sprintf("Can not rename %s to %s, %s", fi.Name(), name, err.Error())
+		gui <- uiErrorMessage
+		return
+	}
+	g.Refresh()
+	g.Current().SelectByName(name)
 	gui <- uiColumnContentChange
 }
 
+func selectString(dirs, files int) string {
+	m := "Selected"
+	u := "s"
+	if files != 0 {
+		if files == 1 {
+			u = ""
+		}
+		m = fmt.Sprintf("%s %d file%s", m, files, u)
+	}
+
+	if files != 0 && dirs != 0 {
+		m += " and "
+	}
+
+	u = "s"
+	if dirs != 0 {
+		m = fmt.Sprintf("%s %d dir%s", m, dirs, u)
+	}
+
+	return m
+}
+
 func (w *workspace) deletePrompt() string {
-	files := w.currentColumn().getMarkedFiles()
+	files := w.currentColumn().Marked()
 	if len(files) == 0 {
 		return ""
 	}
@@ -303,64 +261,51 @@ func (w *workspace) deletePrompt() string {
 		}
 	}
 
-	m := "Selected "
-	if fc != 0 {
-		m += fmt.Sprintf("%d files", fc)
-	}
-	if fc != 0 && dc != 0 {
-		m += " and "
-	}
-	if dc != 0 {
-		m += fmt.Sprintf("%d dirs", dc)
-	}
+	m := selectString(dc, fc)
 
-	m += ". Are you sure to delete them? (y/n)"
+	u := "them"
+	if fc+dc == 1 {
+		u = "it"
+	}
+	m = fmt.Sprintf("%s. Are you sure to delete %s? (y/n)", m, u)
 	return m
 }
 
 func (w *workspace) deleteFiles() {
-	co := w.currentColumn()
-	if len(co.files) == 0 {
+	g := w.currentGroup()
+	co := g.Current()
+	if len(co.Files()) == 0 {
 		return
 	}
 
-	selected := co.files[co.current].Name()
-	files := co.getMarkedFiles()
+	selected, er := co.CurrentFile()
+	files := co.Marked()
 	fc, dc := 0, 0
 	for _, v := range files {
-		s := filepath.Join(co.path, v.Name())
 		if v.IsDir() {
-			err := os.RemoveAll(s)
+			err := os.RemoveAll(v.Path())
 			if err == nil {
 				dc++
 			}
 			continue
 		}
 
-		err := os.Remove(s)
+		err := os.Remove(v.Path())
 		if err == nil {
 			fc++
 		}
 	}
 
-	m := ""
-	if fc == 0 && dc == 0 {
-		m = "No files or dirs"
-	}
-	if fc != 0 {
-		m += fmt.Sprintf("%d files", fc)
-	}
-	if fc != 0 && dc != 0 {
-		m += " and "
-	}
-	if dc != 0 {
-		m += fmt.Sprintf("%d dirs", dc)
-	}
-
+	m := selectString(dc, fc)
 	m += " Deleted"
 	message = m
 	gui <- uiErrorMessage
 
-	co.refreshWithName(selected)
+	g.Refresh()
+	if er == nil {
+		co.SelectByName(selected.Name())
+	} else {
+		co.Select(0)
+	}
 	gui <- uiColumnContentChange
 }

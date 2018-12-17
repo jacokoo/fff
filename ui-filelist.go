@@ -3,9 +3,10 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/jacokoo/fff/model"
 
 	"github.com/jacokoo/fff/ui"
 	runewidth "github.com/mattn/go-runewidth"
@@ -13,7 +14,7 @@ import (
 
 // FileList is a list of file
 type FileList struct {
-	col      *column
+	col      model.Column
 	height   int
 	list     *ui.List
 	filter   *ui.Text
@@ -57,14 +58,14 @@ func formatSize(size int64) string {
 	return fmt.Sprintf("%.2f%s", b, unit)
 }
 
-func expandedName(size string, maxSize int, path string, fi os.FileInfo) string {
+func expandedName(size string, maxSize int, path string, fi model.FileItem) string {
 	ti := fi.ModTime().Format("2006-01-02 15:04:05")
 	md := fi.Mode().String()
 	si := strings.Repeat(" ", maxSize-len(size)) + size
 	return fmt.Sprintf("%s  %s  %s  %s", ti, md, si, fi.Name())
 }
 
-func normalName(size string, path string, v os.FileInfo) string {
+func normalName(size string, path string, v model.FileItem) string {
 	na := v.Name()
 	if v.IsDir() {
 		fs, _ := ioutil.ReadDir(filepath.Join(path, na))
@@ -81,29 +82,30 @@ func normalName(size string, path string, v os.FileInfo) string {
 	return fmt.Sprintf("%s%s%s  ", na, strings.Repeat(" ", re), size)
 }
 
-func fileNames(col *column) ([]string, []int) {
-	names := make([]string, len(col.files))
-	hints := make([]int, len(col.files))
-	sis := make([]string, len(col.files))
+func fileNames(col model.Column) ([]string, []int) {
+	le := len(col.Files())
+	names := make([]string, le)
+	hints := make([]int, le)
+	sis := make([]string, le)
 
 	maxSize := 0
-	for i, v := range col.files {
+	for i, v := range col.Files() {
 		sis[i] = formatSize(v.Size())
 		if len(sis[i]) > maxSize {
 			maxSize = len(sis[i])
 		}
 	}
 
-	for i, v := range col.files {
+	for i, v := range col.Files() {
 		var n string
-		if col.expanded {
-			n = expandedName(sis[i], maxSize, col.path, v)
+		if col.IsShowDetail() {
+			n = expandedName(sis[i], maxSize, col.Path(), v)
 		} else {
-			n = normalName(sis[i], col.path, v)
+			n = normalName(sis[i], col.Path(), v)
 		}
 
 		mark := " "
-		if col.marked(i) {
+		if col.IsMarked(i) {
 			mark = "*"
 		}
 
@@ -112,7 +114,7 @@ func fileNames(col *column) ([]string, []int) {
 		if v.IsDir() {
 			hints[i] = 1
 		}
-		if col.marked(i) {
+		if col.IsMarked(i) {
 			hints[i] = 2
 		}
 	}
@@ -120,12 +122,12 @@ func fileNames(col *column) ([]string, []int) {
 }
 
 // NewFileList create file list
-func NewFileList(p *ui.Point, col *column, height int) *FileList {
+func NewFileList(p *ui.Point, col model.Column, height int) *FileList {
 	h := height - 1
 	filter := ui.NewText(p.BottomN(h), "")
 	filter.Color = colorFilter()
 	ns, hs := fileNames(col)
-	list := ui.NewList(p, col.current, h, ns, hs)
+	list := ui.NewList(p, col.Current(), h, ns, hs)
 	return &FileList{col, h, list, filter, ui.NewText(p, ""), ui.NewDrawable(p)}
 }
 
@@ -158,7 +160,7 @@ func (fl *FileList) MoveTo(p *ui.Point) *ui.Point {
 }
 
 func (fl *FileList) updateFilter() {
-	s := fl.col.filter
+	s := fl.col.Filter()
 	if len(s) != 0 {
 		s = "F: " + s
 	}
@@ -167,14 +169,14 @@ func (fl *FileList) updateFilter() {
 }
 
 func (fl *FileList) updateIndicate() {
-	data := fmt.Sprintf("[%d/%d]", fl.col.current+1, len(fl.col.files))
+	data := fmt.Sprintf("[%d/%d]", fl.col.Current()+1, len(fl.col.Files()))
 	fl.indicate.Clear()
 	fl.indicate.SetValue(data).MoveTo(&ui.Point{X: (fl.Start.X + cwidth(fl.col)) - 2 - len(data), Y: fl.End.Y})
 }
 
 func (fl *FileList) update() {
 	ns, hs := fileNames(fl.col)
-	fl.list.SetData(ns, hs, fl.col.current)
+	fl.list.SetData(ns, hs, fl.col.Current())
 	fl.updateIndicate()
 	fl.updateFilter()
 	fl.End.X = fl.Start.X + cwidth(fl.col)
@@ -182,6 +184,6 @@ func (fl *FileList) update() {
 
 func (fl *FileList) updateSelect() {
 	fl.list.Clear()
-	fl.list.Select(fl.col.current)
+	fl.list.Select(fl.col.Current())
 	fl.updateIndicate()
 }

@@ -1,5 +1,7 @@
 package main
 
+import "github.com/jacokoo/fff/model"
+
 var (
 	inputQuit = make(chan bool)
 	inputer   Inputer
@@ -53,6 +55,40 @@ func (n *nameInputer) End(abort bool) {
 		go n.action(n.name)
 	}
 	n.name = ""
+}
+
+type columnInputer struct {
+	model.Column
+}
+
+func (co *columnInputer) Name() string {
+	return "FILTER"
+}
+
+func (co *columnInputer) Get() string {
+	return co.Filter()
+}
+
+func (co *columnInputer) Append(ch rune) {
+	fi := co.Filter() + string(ch)
+	co.SetFilter(fi)
+	co.DoFilter()
+	gui <- uiColumnContentChange
+}
+
+func (co *columnInputer) Delete() bool {
+	f := co.Filter()
+	if len(f) == 0 {
+		return false
+	}
+
+	co.SetFilter(f[:len(f)-1])
+	co.DoFilter()
+	gui <- uiColumnContentChange
+	return true
+}
+
+func (co *columnInputer) End(abort bool) {
 }
 
 func handleInputKey() {
