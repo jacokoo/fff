@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/jacokoo/fff/ui"
 	termbox "github.com/nsf/termbox-go"
@@ -21,9 +22,9 @@ binding:
   # bindings for normal mode
   normal:
     "s":                                  # Prefix, Sort File
-      "n": ActionSortByName               # Sort By Name
-      "m": ActionSortByMtime              # Sort By MTime
-      "s": ActionSortBySize               # Sort By Size
+      "n": ActionSortByName               ; Sort By Name
+      "m": ActionSortByMtime              ; Sort By MTime
+      "s": ActionSortBySize               ; Sort By Size
     ".": ActionToggleHidden               # Toggle show hidden files
     "d": ActionToggleDetail               # Toggle show file details
     "j": ActionMoveDown                   # Move down
@@ -37,9 +38,9 @@ binding:
     "ctrl-n": ActionMoveDown              # Move down
     "ctrl-p": ActionMoveUp                # Move up
     "b":                                  # Prefix, Bookmark manage
-      "b": ActionToggleBookmark           # Toggle show bookmark
-      "n": ActionAddBookmark              # Bookmark current dir
-      "d": ActionDeleteBookmark           # Delete bookmark
+      "b": ActionToggleBookmark           ; Toggle show bookmark
+      "n": ActionAddBookmark              ; Bookmark current dir
+      "d": ActionDeleteBookmark           ; Delete bookmark
     "r": ActionRefresh                    # Refresh current dir
     "1": ActionChangeGroup0               # Change group to 1
     "2": ActionChangeGroup1               # Change group to 2
@@ -94,7 +95,6 @@ color:
 editor: vi
 shell: sh
 pager: less
-
 `)
 
 var colorMap = map[string]termbox.Attribute{
@@ -158,7 +158,14 @@ func readChildren(ds map[interface{}]interface{}) []*cmd {
 		if !e1 || !e2 {
 			panic(fmt.Sprintf("key [%v] or action [%v] must be string", k, v))
 		}
-		cds = append(cds, newCmd(kk, vv, nil))
+		cmd := newCmd(kk, vv, nil)
+		idx := strings.Index(vv, ";")
+		fmt.Println(k, v)
+		if idx != -1 {
+			cmd.action = strings.Trim(vv[:idx], " ")
+			cmd.desc = strings.Trim(vv[idx+1:], " ")
+		}
+		cds = append(cds, cmd)
 	}
 	return cds
 }

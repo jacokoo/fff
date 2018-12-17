@@ -79,8 +79,12 @@ func colorStatusBarTitle() *ui.Color { return cfg.color("statusbar-title") }
 func handleUIEvent(ev int) {
 	switch ev {
 	case uiErrorMessage:
-		uiStatusMessage.Restore().Set(0, message)
-		message = ""
+		if message == "" {
+			updateFileInfo()
+		} else {
+			uiStatusMessage.Restore().Set(0, message)
+			message = ""
+		}
 	case uiChangeGroup:
 		uiTab.SwitchTo(wo.group)
 		uiInitColumns()

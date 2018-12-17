@@ -202,6 +202,10 @@ func changeMode(to Mode) {
 }
 
 func restoreKbds() {
+	if keyPrefixed {
+		message = ""
+		gui <- uiErrorMessage
+	}
 	keyPrefixed = false
 
 	switch mode {
@@ -246,6 +250,19 @@ func doAction(ev termbox.Event) {
 	}
 
 	currentKbds = c.children
+	m := ""
+	for i, v := range currentKbds {
+		key := string(v.ch)
+		if v.useKey {
+			key = keyToName[v.key]
+		}
+		m = fmt.Sprintf("%s[%s]%s", m, key, v.desc)
+		if i != len(currentKbds)-1 {
+			m += "    "
+		}
+	}
+	message = m
+	gui <- uiErrorMessage
 	keyPrefixed = true
 }
 
@@ -272,8 +289,8 @@ func isShell(ev termbox.Event) bool {
 			return true
 		}
 		if kb.action == "ActionEdit" || kb.action == "ActionView" {
-			_, err := wo.currentColumn().CurrentFile()
-			return err == nil
+			file, err := wo.currentColumn().CurrentFile()
+			return err == nil && !file.IsDir()
 		}
 	}
 
