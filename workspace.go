@@ -330,3 +330,18 @@ func (w *workspace) deleteBookmark(name string) {
 	}
 	gui <- uiBookmarkChanged
 }
+
+func (w *workspace) openFile() {
+	g := w.currentGroup()
+	file, err := g.Current().CurrentFile()
+	if err != nil {
+		return
+	}
+
+	if file.IsDir() {
+		w.openRight()
+		return
+	}
+
+	g.Open(file.Path())
+}

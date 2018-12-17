@@ -1,6 +1,9 @@
 package main
 
-import "github.com/jacokoo/fff/model"
+import (
+	"github.com/jacokoo/fff/model"
+	"github.com/mattn/go-runewidth"
+)
 
 var (
 	inputQuit = make(chan bool)
@@ -20,6 +23,13 @@ type nameInputer struct {
 	title  string
 	name   string
 	action func(string)
+}
+
+func deleteLastChar(str string) (string, int) {
+	chs := []rune(str)
+	ch := chs[len(chs)-1]
+	width := runewidth.RuneWidth(ch)
+	return string(chs[:len(chs)-1]), width
 }
 
 func newNameInput(title string, action func(string)) *nameInputer {
@@ -43,7 +53,8 @@ func (n *nameInputer) Delete() bool {
 		return false
 	}
 
-	n.name = n.name[:len(n.name)-1]
+	nn, _ := deleteLastChar(n.name)
+	n.name = nn
 	return true
 }
 
@@ -72,7 +83,7 @@ func (co *columnInputer) Get() string {
 func (co *columnInputer) Append(ch rune) {
 	fi := co.Filter() + string(ch)
 	co.SetFilter(fi)
-	co.DoFilter()
+	co.Update()
 	gui <- uiColumnContentChange
 }
 
@@ -82,8 +93,9 @@ func (co *columnInputer) Delete() bool {
 		return false
 	}
 
-	co.SetFilter(f[:len(f)-1])
-	co.DoFilter()
+	nn, _ := deleteLastChar(f)
+	co.SetFilter(nn)
+	co.Update()
 	gui <- uiColumnContentChange
 	return true
 }

@@ -4,6 +4,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 )
 
@@ -17,6 +18,7 @@ type Operator interface {
 	DeleteFile(path string) error
 	DeleteDir(path string) error
 	CopyFile(path, newPath string, result chan<- error)
+	Open(path string) error
 }
 
 // LocalOperator use local fs
@@ -83,4 +85,13 @@ func (o *LocalOperator) CopyFile(path, newPath string, result chan<- error) {
 	if err != nil {
 		result <- err
 	}
+}
+
+// Open file
+func (o *LocalOperator) Open(path string) error {
+	cmd := exec.Command("open", path)
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+	return cmd.Start()
 }

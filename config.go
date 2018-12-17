@@ -30,12 +30,12 @@ binding:
     "k": ActionMoveUp                     # Move up
     "l": ActionOpenFolderRight            # Open folder on right
     "h": ActionCloseFolderRight           # Go to parent folder
+    "enter": ActionOpenFile               # Open file
     ",": ActionShift                      # Shift column
     "K": ActionMoveToFirst                # Move to first item
     "J": ActionMoveToLast                 # Move to last item
     "ctrl-n": ActionMoveDown              # Move down
     "ctrl-p": ActionMoveUp                # Move up
-    "enter": ActionOpenFolderRight        # Open folder on right
     "b":                                  # Prefix, Bookmark manage
       "b": ActionToggleBookmark           # Toggle show bookmark
       "n": ActionAddBookmark              # Bookmark current dir
@@ -94,6 +94,7 @@ color:
 editor: vi
 shell: sh
 pager: less
+
 `)
 
 var colorMap = map[string]termbox.Attribute{

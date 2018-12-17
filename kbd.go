@@ -119,6 +119,7 @@ var (
 		"ActionMoveToFirst":        func() { wo.moveToFirst() },
 		"ActionMoveToLast":         func() { wo.moveToLast() },
 		"ActionOpenFolderRight":    func() { wo.openRight() },
+		"ActionOpenFile":           func() { wo.openFile() },
 		"ActionCloseFolderRight":   func() { wo.closeRight() },
 		"ActionShift":              func() { wo.shift() },
 		"ActionToggleBookmark":     func() { wo.toggleBookmark() },
