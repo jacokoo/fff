@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -43,6 +44,9 @@ func readFromFile() {
 }
 
 func writeToFile() {
+	if _, err := os.Stat(configDir); err != nil {
+		os.Mkdir(configDir, 0755)
+	}
 	s := ""
 	for _, k := range bookmarkKeys {
 		if k == homeName || k == rootName {

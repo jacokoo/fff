@@ -246,9 +246,5 @@ func initConfig() *config {
 		c.shell = shell
 	}
 
-	for _, v := range c.normalKbds {
-		fmt.Println(string(v.ch), v.action)
-	}
-
 	return c
 }

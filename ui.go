@@ -125,7 +125,9 @@ func handleUIEvent(ev int) {
 		uiLists[0].update()
 		updateCurrent()
 	case uiShift:
-		uiLists = uiLists[1:]
+		if len(uiLists) > 1 {
+			uiLists = uiLists[1:]
+		}
 		redrawColumns()
 	case uiJumpTo:
 		uiInitColumns()
