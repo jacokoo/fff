@@ -25,8 +25,10 @@ func (t *Text) Draw() *Point {
 		termbox.SetCell(t.Start.X+i, t.Start.Y, v, t.FG, t.BG)
 		i += runewidth.RuneWidth(v)
 	}
-	t.End.X = t.Start.X + i - 1
-	t.End.Y = t.Start.Y
+	t.End = t.Start.RightN(i)
+	if i > 0 {
+		t.End.MoveLeft()
+	}
 	return t.End
 }
 
@@ -36,20 +38,14 @@ func (t *Text) MoveTo(p *Point) *Point {
 	return t.Draw()
 }
 
-// SetValue set the value
-func (t *Text) SetValue(str string) *Text {
-	t.Data = str
-	return t
-}
-
 // Keyed is a container with key
 type Keyed struct {
 	Key  string
 	item Drawer
 	*Drawable
 
-	start *Text
-	end   *Text
+	left  *Text
+	right *Text
 }
 
 // NewKeyed create Keyed
@@ -59,40 +55,22 @@ func NewKeyed(p *Point, key string, item Drawer) *Keyed {
 
 // Draw it
 func (k *Keyed) Draw() *Point {
-	k.start.Data = fmt.Sprintf("%s[", k.Key)
-	k.start.Color = colorKeyword()
-	e := k.start.MoveTo(k.Start)
+	k.left.Data = fmt.Sprintf("%s[", k.Key)
+	k.left.Color = colorKeyword()
+	e := k.left.MoveTo(k.Start)
 
 	e = k.item.MoveTo(e.Right())
-	k.end.Data = "]"
-	k.end.Color = colorKeyword()
-	k.End = k.end.MoveTo(e.Right())
+	k.right.Data = "]"
+	k.right.Color = colorKeyword()
+	k.End = k.right.MoveTo(e.Right())
 	return k.End
 }
 
 // MoveTo update location
 func (k *Keyed) MoveTo(p *Point) *Point {
 	k.Start = p
-	e := k.start.MoveTo(p)
+	e := k.left.MoveTo(p)
 	e = k.item.MoveTo(e.Right())
-	k.End = k.end.MoveTo(e.Right())
+	k.End = k.right.MoveTo(e.Right())
 	return k.End
-}
-
-// Label represent a label
-type Label struct {
-	*Keyed
-	text *Text
-}
-
-// NewLabel create Label
-func NewLabel(p *Point, key string, value string) *Label {
-	s := NewText(ZeroPoint, value)
-	return &Label{NewKeyed(p, key, s), s}
-}
-
-// SetValue set the value of label
-func (l *Label) SetValue(str string) *Label {
-	l.text.Data = str
-	return l
 }

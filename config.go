@@ -160,7 +160,6 @@ func readChildren(ds map[interface{}]interface{}) []*cmd {
 		}
 		cmd := newCmd(kk, vv, nil)
 		idx := strings.Index(vv, ";")
-		fmt.Println(k, v)
 		if idx != -1 {
 			cmd.action = strings.Trim(vv[:idx], " ")
 			cmd.desc = strings.Trim(vv[idx+1:], " ")

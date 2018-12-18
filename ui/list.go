@@ -16,7 +16,7 @@ type List struct {
 func NewList(p *Point, selected, height int, items []string, colorHints []int) *List {
 	is := make([]*Text, len(items))
 	for i, v := range items {
-		is[i] = NewText(p.BottomN(i), v)
+		is[i] = NewText(p.DownN(i), v)
 	}
 
 	cs := []*Color{colorFile(), colorFolder(), colorMarked()}
@@ -52,23 +52,16 @@ func (l *List) Draw() *Point {
 		if i == l.Selected {
 			v.Color = v.Color.Reverse()
 		}
-		p := v.MoveTo(l.Start.BottomN(j))
+		p := v.MoveTo(l.Start.DownN(j))
 		if p.X > maxX {
 			maxX = p.X
 		}
 		j++
 	}
 
-	l.End.X = maxX - 1
-	l.End.Y = l.Start.Y + l.Height
+	l.End.X = maxX
+	l.End.Y = l.Start.Y + l.Height - 1
 	return l.End
-}
-
-// Clear it
-func (l *List) Clear() {
-	for _, v := range l.items {
-		v.Clear()
-	}
 }
 
 // MoveTo update location
@@ -85,7 +78,6 @@ func (l *List) Select(item int) {
 	old := l.items[l.Selected]
 	old.Color = l.colors[l.colorHints[l.Selected]]
 	l.Selected = item
-	l.Draw()
 }
 
 // SetData update items
@@ -97,9 +89,8 @@ func (l *List) SetData(items []string, hints []int, selected int) {
 
 	l.items = make([]*Text, len(items))
 	for i, v := range items {
-		l.items[i] = NewText(l.Start.BottomN(i), v)
+		l.items[i] = NewText(l.Start.DownN(i), v)
 	}
-	l.Draw()
 }
 
 // ItemRange the items showed

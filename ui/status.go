@@ -57,7 +57,7 @@ func (s *Status) MoveTo(p *Point) *Point {
 // Set string to status bar
 func (s *Status) Set(idx int, str string) *Point {
 	s.Clear()
-	s.items[idx].SetValue(str)
+	s.items[idx].Data = str
 	s.Draw()
 	return s.items[len(s.items)-1].End
 }

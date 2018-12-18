@@ -18,7 +18,7 @@ func NewHLine(p *Point, width int) *HLine {
 
 // ChangeWidth change the line width
 func (h *HLine) ChangeWidth(width int) {
-	h.Text.SetValue(strings.Repeat("─", width))
+	h.Text.Data = strings.Repeat("─", width)
 }
 
 // VLine vertical line
@@ -45,7 +45,11 @@ func (v *VLine) Draw() *Point {
 		termbox.SetCell(v.Start.X, v.Start.Y+i, v.token, v.FG, v.BG)
 	}
 	// v.End.X
-	v.End.Y = v.Start.Y + i
+	v.End = v.Start.DownN(i)
+	if i > 0 {
+		v.End.MoveUp()
+	}
+
 	return v.End
 }
 

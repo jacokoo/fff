@@ -6,137 +6,130 @@ var (
 	cornerReset  = "─"
 )
 
-type column struct {
-	Width, Height int
+// ColumnItem a item
+type ColumnItem struct {
+	item     Drawer
+	showLine bool
+	line     *VLine
+	corner   *Text
 	*Drawable
-
-	corner *Text
-	vline  *VLine
 }
 
-func newColumn(p *Point, width, height int, corner string) *column {
-	pp := p.RightN(width)
-	ppp := pp.RightN(0)
-	ppp.Y--
-
+func newColumnItem(height int, singleLine bool, item Drawer) *ColumnItem {
 	var line *VLine
-	if corner == singleCorner {
-		line = NewVLine(pp, height)
+	var corner *Text
+	if singleLine {
+		line = NewVLine(ZeroPoint, height)
+		corner = NewText(ZeroPoint, singleCorner)
 	} else {
-		line = NewVDLine(pp, height)
+		line = NewVDLine(ZeroPoint, height)
+		corner = NewText(ZeroPoint, doubleCorner)
 	}
-	return &column{width, height, NewDrawable(p), NewText(ppp, corner), line}
+
+	return &ColumnItem{item, true, line, corner, NewDrawable(ZeroPoint)}
 }
 
-// Draw It
-func (c *column) Draw() *Point {
-	c.corner.Draw()
-	p := c.vline.Draw()
-	p.Y--
-	c.End = p
+// Draw it
+func (ci *ColumnItem) Draw() *Point {
+	p := ci.item.MoveTo(ci.Start)
+	if !ci.showLine {
+		ci.End = p
+		return p
+	}
+
+	p = p.Right()
+	p.Y = ci.Start.Y
+	ci.corner.MoveTo(p.Up())
+	p = ci.line.MoveTo(p)
+	ci.End = p
 	return p
 }
 
 // MoveTo update location
-func (c *column) MoveTo(p *Point) *Point {
+func (ci *ColumnItem) MoveTo(p *Point) *Point {
+	ci.Start = p
+	return ci.Draw()
+}
+
+// Clear it
+func (ci *ColumnItem) Clear() {
+	ci.Rect.Clear()
+	ss := ci.corner.Data
+	ci.corner.Data = cornerReset
+	ci.corner.Draw()
+	ci.corner.Data = ss
+}
+
+// Column container
+type Column struct {
+	Width, Height int
+	items         []*ColumnItem
+	itemMap       map[Drawer]*ColumnItem
+	line          *HLine
+	*Drawable
+}
+
+// Draw it
+func (c *Column) Draw() *Point {
+	p := c.line.MoveTo(c.Start)
+	c.End.X = p.X
+	c.End.Y = c.Start.Y + c.Height - 1
+
+	p = c.Start.Down()
+	for _, v := range c.items {
+		pp := v.MoveTo(p).Right()
+		pp.Y = p.Y
+		p = pp
+	}
+	return c.End
+}
+
+// MoveTo update loation
+func (c *Column) MoveTo(p *Point) *Point {
 	c.Start = p
 	return c.Draw()
 }
 
-// Clear it
-func (c *column) Clear() {
-	c.Rect.Clear()
-	c.corner.SetValue(cornerReset).Draw()
-}
-
-// InnerStart point for content draw
-func (c *column) InnerStart() *Point {
-	return &Point{c.Start.X + 1, c.Start.Y + 1}
-}
-
-// Columns represent dirs
-type Columns struct {
-	Width, Height int
-	*Drawable
-
-	line    *HLine
-	columns []*column
-}
-
-// NewColumns create Columns
-func NewColumns(p *Point, width, height int) *Columns {
-	l := NewHLine(p, width)
-	return &Columns{width, height, NewDrawable(p), l, make([]*column, 0)}
-}
-
-// Draw it
-func (c *Columns) Draw() *Point {
-	c.line.Draw()
-	c.End.X = c.line.End.X
-	c.End.Y = c.Start.Y + c.Height - 1
-	for _, v := range c.columns {
-		v.Draw()
+func (c *Column) add(item Drawer, singleLine bool) {
+	var p *Point
+	if len(c.items) == 0 {
+		p = c.Start.Down()
+	} else {
+		p = c.items[len(c.items)-1].End.Right()
+		p.Y = c.Start.Y + 1
 	}
-	return c.End
+	col := newColumnItem(c.Height-1, singleLine, item)
+	c.items = append(c.items, col)
+	c.itemMap[item] = col
+
+	col.MoveTo(p)
 }
 
-// MoveTo update location
-func (c *Columns) MoveTo(p *Point) *Point {
-	c.Start = p
-	c.line.MoveTo(p)
-
-	pp := p.Bottom()
-	for _, v := range c.columns {
-		v.MoveTo(pp)
-		pp = pp.RightN(v.Width)
-	}
-
-	return c.End
+// Add column
+func (c *Column) Add(item Drawer) {
+	c.add(item, true)
 }
 
-func (c *Columns) add(width int, corner string) int {
-	p := c.Start.Bottom()
-	if len(c.columns) > 0 {
-		p.X = c.columns[len(c.columns)-1].End.X + 1
-	}
-
-	co := newColumn(p, width, c.Height-1, corner)
-	c.columns = append(c.columns, co)
-	co.Draw()
-	return len(c.columns) - 1
+// Add2 column with double line
+func (c *Column) Add2(item Drawer) {
+	c.add(item, false)
 }
 
-// Add a new column
-func (c *Columns) Add(width int) int {
-	return c.add(width, singleCorner)
-}
-
-// Add2 a new column with double line border
-func (c *Columns) Add2(width int) int {
-	return c.add(width, doubleCorner)
-}
-
-// StartAt returns the content start point
-func (c *Columns) StartAt(index int) *Point {
-	p := c.columns[index].Start.RightN(0)
-	return p
+// Get column item
+func (c *Column) Get(item Drawer) *ColumnItem {
+	return c.itemMap[item]
 }
 
 // Remove the last column
-func (c *Columns) Remove() {
-	l := len(c.columns) - 1
-	c.columns[l].Clear()
-	c.columns = c.columns[:l]
-}
-
-// ClearAt clear column at idx
-func (c *Columns) ClearAt(idx int) {
-	c.columns[idx].Clear()
+func (c *Column) Remove() {
+	l := len(c.items) - 1
+	c.items[l].Clear()
+	c.items = c.items[:l]
 }
 
 // RemoveAll the columns
-func (c *Columns) RemoveAll() {
+func (c *Column) RemoveAll() {
 	c.Clear()
 	c.line.Draw()
-	c.columns = c.columns[:0]
+	c.items = c.items[:0]
 }

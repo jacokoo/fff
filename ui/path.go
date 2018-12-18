@@ -3,12 +3,24 @@ package ui
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 )
 
 // Path represent seperated path
 type Path struct {
 	*Keyed
 	items []*Text
+}
+
+func pathItems(path string) []string {
+	ts := strings.Split(path, string(filepath.Separator))
+	if ts[0] == "" {
+		ts[0] = "/"
+	}
+	if ts[len(ts)-1] == "" {
+		ts = ts[:len(ts)-1]
+	}
+	return ts
 }
 
 func createPathItems(items []string) (*DrawerList, []*Text) {
@@ -34,8 +46,8 @@ func createPathItems(items []string) (*DrawerList, []*Text) {
 }
 
 // NewPath create path
-func NewPath(p *Point, name string, items []string) *Path {
-	dl, its := createPathItems(items)
+func NewPath(p *Point, name string, path string) *Path {
+	dl, its := createPathItems(pathItems(path))
 	kd := NewKeyed(p, name, dl)
 	return &Path{kd, its}
 }
