@@ -1,10 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"path/filepath"
-	"strings"
-
 	"github.com/jacokoo/fff/ui"
 )
 
@@ -20,57 +16,41 @@ const (
 )
 
 var (
+	jump         = make(chan rune)
 	jumpQuit     = make(chan bool)
-	jumpToReady  = make(chan bool)
-	jumpItems    []*jumpItem
 	continueJump = false
+	jumpItems    []*ui.JumpItem
 )
 
-type jumpItem struct {
-	key    []rune
-	action func() bool
-	point  *ui.Point
-}
-
-func collectList(list *ui.List, fn func(int, *ui.Point)) {
-	from, to := list.ItemRange()
-	rs := list.ItemRects()
-	for i := from; i < to; i++ {
-		p := rs[i-from].Start.Right()
-		p.X--
-		fn(i, p)
-	}
-}
-
-func oneCharKey(items []*jumpItem) {
+func oneCharKey(items []*ui.JumpItem) {
 	idx, length := 0, len(items)
 	for ch := 'a'; ch < 'z' && idx < length; ch++ {
-		items[idx].key = []rune{ch}
+		items[idx].Key = []rune{ch}
 		idx++
 	}
 
 	if idx < length {
 		for ch := 'A'; ch < 'Z' && idx < length; ch++ {
-			items[idx].key = []rune{ch}
+			items[idx].Key = []rune{ch}
 			idx++
 		}
 	}
 }
 
-func twoCharKey(items []*jumpItem) {
+func twoCharKey(items []*ui.JumpItem) {
 	idx, length := 0, len(items)
 	for ch := 'a'; ch < 'z'; ch++ {
 		for ch2 := 'a'; ch2 < 'z'; ch2++ {
 			if idx >= length {
 				return
 			}
-			items[idx].key = []rune{ch, ch2}
+			items[idx].Key = []rune{ch, ch2}
 			idx++
 		}
 	}
 }
 
-func keyThem(items []*jumpItem) {
+func keyThem(items []*ui.JumpItem) {
 	count := len(items)
 	if count <= 52 { // a-zA-Z
 		oneCharKey(items)
@@ -79,9 +59,9 @@ func keyThem(items []*jumpItem) {
 	twoCharKey(items)
 }
 
-func handleJumpResult(item *jumpItem) {
+func handleJumpResult(item *ui.JumpItem) {
 	ui.GuiNeedAck = true
-	co := item.action()
+	co := item.Action()
 	<-ui.GuiAck
 	ui.GuiNeedAck = false
 
@@ -100,7 +80,7 @@ func handleJumpResult(item *jumpItem) {
 
 	jumpItems = items
 	changeMode(ModeJump)
-	ui.JumpRefreshEvent.Send(1)
+	ui.JumpRefreshEvent.Send(jumpItems)
 }
 
 func handleKeys() {
@@ -111,23 +91,23 @@ func handleKeys() {
 			changeMode(ModeDisabled)
 			var got = false
 			for _, it := range jumpItems {
-				if len(it.key) == 0 {
+				if len(it.Key) == 0 {
 					continue
 				}
-				if it.key[0] != ch {
-					it.key = nil
+				if it.Key[0] != ch {
+					it.Key = nil
 					continue
 				}
-				if len(it.key) == 1 {
+				if len(it.Key) == 1 {
 					go handleJumpResult(it)
 					break sc
 				}
 
-				it.key = it.key[1:]
+				it.Key = it.Key[1:]
 				got = true
 			}
 			if got {
-				ui.JumpRefreshEvent.Send(1)
+				ui.JumpRefreshEvent.Send(jumpItems)
 				changeMode(ModeJump)
 			} else {
 				go quitJumpMode()
@@ -138,28 +118,27 @@ func handleKeys() {
 	}
 }
 
-func collectAllDir() []*jumpItem {
-	items := make([]*jumpItem, 0)
+func collectAllDir() []*ui.JumpItem {
+	items := make([]*ui.JumpItem, 0)
 	ui.EachFileList(func(colIdx int, list *ui.List) {
-		collectList(list, func(idx int, p *ui.Point) {
-			items = append(items, &jumpItem{nil, func() bool {
+		items = append(items, list.JumpItems(func(idx int) func() bool {
+			return func() bool {
 				return ac.jumpTo(colIdx, idx, continueJump)
-			}, p})
-		})
+			}
+		})...)
 	})
 	return items
 }
 
-func collectBookmark(forDelete bool) []*jumpItem {
-	items := make([]*jumpItem, 0)
+func collectBookmark(forDelete bool) []*ui.JumpItem {
 	if !wo.IsShowBookmark() {
-		return items
+		return nil
 	}
 	bk := wo.Bookmark
-	collectList(ui.BookmarkList(), func(idx int, p *ui.Point) {
+	return ui.BookmarkList().JumpItems(func(idx int) func() bool {
 		key := bk.Names[idx]
 		if forDelete && bk.IsFixed(key) {
-			return
+			return nil
 		}
 		fn := func() bool {
 			v, has := bk.Get(key)
@@ -175,56 +154,37 @@ func collectBookmark(forDelete bool) []*jumpItem {
 				return false
 			}
 		}
-		items = append(items, &jumpItem{nil, fn, p})
+		return fn
 	})
-	return items
 }
 
-func collectCurrentDir() []*jumpItem {
-	items := make([]*jumpItem, 0)
-	collectList(ui.CurrentFileList(), func(idx int, p *ui.Point) {
-		items = append(items, &jumpItem{nil, func() bool {
+func collectCurrentDir() []*ui.JumpItem {
+	return ui.CurrentFileList().JumpItems(func(idx int) func() bool {
+		return func() bool {
 			return ac.jumpTo(len(wo.CurrentGroup().Columns())-1, idx, continueJump)
-		}, p})
+		}
 	})
-	return items
 }
 
-func collectGroups() []*jumpItem {
-	items := make([]*jumpItem, 0)
-	for i, v := range gui.Tab.TabRects() {
-		idx := i
-		ji := &jumpItem{[]rune{rune(49 + i)}, func() bool {
+func collectGroups() []*ui.JumpItem {
+	return gui.Tab.JumpItems(func(idx int) func() bool {
+		return func() bool {
 			ac.changeGroup(idx)
 			return false
-		}, v.Start.Down().MoveRight()}
-		items = append(items, ji)
-	}
-	return items
+		}
+	})
 }
 
-func collectCurrentPath() []*jumpItem {
-	items := make([]*jumpItem, 0)
-	its := gui.Path.PathItems
-	p := ""
-	for i, v := range gui.Path.ItemRects() {
-		p += fmt.Sprintf("%c%s", filepath.Separator, its[i])
-		pp := v.Start.Down()
-		if i == 0 {
-			pp.X--
+func collectCurrentPath() []*ui.JumpItem {
+	return gui.Path.JumpItems(func(path string) func() bool {
+		if path == "/" {
+			return nil
 		}
-		if strings.HasPrefix(p, "//") {
-			p = p[1:]
-		}
-
-		to := p
-		ji := &jumpItem{nil, func() bool {
-			ac.openRoot(to)
+		return func() bool {
+			ac.openRoot(path)
 			return true
-		}, pp}
-		items = append(items, ji)
-	}
-	return items
+		}
+	})
 }
 
 func enterJumpMode(md JumpMode, cj bool) {
@@ -245,7 +205,7 @@ func enterJumpMode(md JumpMode, cj bool) {
 	}
 	continueJump = cj
 
-	ui.JumpRefreshEvent.Send(1)
+	ui.JumpRefreshEvent.Send(jumpItems)
 	go handleKeys()
 	changeMode(ModeJump)
 }
@@ -256,6 +216,6 @@ func quitJumpMode() {
 	}
 	jumpQuit <- true
 	jumpItems = nil
-	ui.JumpRefreshEvent.Send(1)
+	ui.JumpRefreshEvent.Send(jumpItems)
 	changeMode(ModeNormal)
 }

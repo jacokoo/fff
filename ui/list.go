@@ -94,17 +94,3 @@ func (l *List) SetData(items []string, hints []int, selected int) {
 		l.items[i] = NewText(l.Start.DownN(i), v)
 	}
 }
-
-// ItemRange the items showed
-func (l *List) ItemRange() (int, int) {
-	return l.from, l.to
-}
-
-// ItemRects return the showed item rects
-func (l *List) ItemRects() []*Rect {
-	rs := make([]*Rect, 0)
-	for i := l.from; i < l.to; i++ {
-		rs = append(rs, l.items[i].Rect)
-	}
-	return rs
-}

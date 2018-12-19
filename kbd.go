@@ -179,8 +179,6 @@ var (
 	}
 
 	mode    = ModeNormal
-	jump    = make(chan rune)
-	input   = make(chan rune)
 	kbd     = make(chan termbox.Event)
 	kbdQuit = make(chan bool)
 

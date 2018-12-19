@@ -199,6 +199,26 @@ var handlers = map[EventType]func(interface{}){
 		ui.Bookmark.SetData(bk.Names)
 		ui.Column.Draw()
 	},
+
+	JumpRefreshEvent: func(data interface{}) {
+		if ui.jumpItems != nil {
+			for _, v := range ui.jumpItems {
+				v.Clear()
+			}
+			ui.jumpItems = nil
+		}
+
+		for _, v := range data.([]*JumpItem) {
+			if len(v.Key) == 0 {
+				continue
+			}
+
+			t := NewText(v.Point, string(v.Key))
+			t.Color = colorJump()
+			t.Draw()
+			ui.jumpItems = append(ui.jumpItems, t)
+		}
+	},
 }
 
 func startEventLoop() {

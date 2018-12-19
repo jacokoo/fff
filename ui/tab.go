@@ -47,16 +47,3 @@ func (t *Tab) SwitchTo(selected int) *Point {
 
 	return t.Keyed.End
 }
-
-// TabRects return the rect of all the tabs
-func (t *Tab) TabRects() []*Rect {
-	ds := t.names.Drawers
-	rs := make([]*Rect, len(ds))
-
-	for i, v := range ds {
-		t := v.(*Text)
-		rs[i] = t.Rect
-	}
-
-	return rs
-}

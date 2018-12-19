@@ -35,6 +35,8 @@ type UI struct {
 	Status        *Status
 	StatusMessage *StatusBackup
 	StatusInput   *StatusBackup
+
+	jumpItems []*Text
 }
 
 func (ui *UI) isShowBookmark() bool {
@@ -109,6 +111,9 @@ func createUI(wo *model.Workspace) {
 // EachFileList walk through all file list
 func EachFileList(fn func(int, *List)) {
 	for i, v := range ui.Column.items {
+		if v == ui.bkColumn {
+			continue
+		}
 		fn(i, v.item.(*FileList).list)
 	}
 }

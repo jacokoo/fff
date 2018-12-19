@@ -7,6 +7,7 @@ import (
 )
 
 var (
+	input     = make(chan rune)
 	inputQuit = make(chan bool)
 	inputer   Inputer
 )
