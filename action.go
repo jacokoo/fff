@@ -82,13 +82,14 @@ func (w *action) closeRight() {
 
 func (w *action) shift() {
 	gu := wo.CurrentGroup()
-	gu.Shift()
-	ui.ShiftEvent.Send(gu)
+	if gu.Shift() {
+		ui.ShiftEvent.Send(gu)
+	}
 }
 
 func (w *action) toggleBookmark() {
 	wo.ToggleBookmark()
-	ui.ToggleBookmarkEvent.Send(wo.IsShowBookmark)
+	ui.ToggleBookmarkEvent.Send(wo.IsShowBookmark())
 }
 
 func (w *action) changeGroup(idx int) {

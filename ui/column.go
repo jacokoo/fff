@@ -120,7 +120,6 @@ func (c *Column) add(item Drawer, singleLine bool) *ColumnItem {
 	}
 	col := newColumnItem(c.Height-1, singleLine, item)
 	c.items = append(c.items, col)
-	col.MoveTo(p)
 	return col
 }
 

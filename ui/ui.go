@@ -110,11 +110,15 @@ func createUI(wo *model.Workspace) {
 
 // EachFileList walk through all file list
 func EachFileList(fn func(int, *List)) {
+	d := 0
+	if ui.isShowBookmark() {
+		d = 1
+	}
 	for i, v := range ui.Column.items {
 		if v == ui.bkColumn {
 			continue
 		}
-		fn(i, v.item.(*FileList).list)
+		fn(i-d, v.item.(*FileList).list)
 	}
 }
 

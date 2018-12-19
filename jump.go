@@ -200,9 +200,6 @@ func enterJumpMode(md JumpMode, cj bool) {
 		jumpItems = append(jumpItems, collectAllDir()...)
 	}
 	keyThem(jumpItems)
-	if md != JumpModeDeleteBookmark {
-		jumpItems = append(jumpItems, collectGroups()...)
-	}
 	continueJump = cj
 
 	ui.JumpRefreshEvent.Send(jumpItems)
