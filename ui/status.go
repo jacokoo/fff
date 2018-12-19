@@ -23,11 +23,10 @@ type StatusBackup struct {
 }
 
 // NewStatus create status bar
-func NewStatus() *Status {
-	w, h := termbox.Size()
-	d := NewDrawable(&Point{0, h - 1})
+func NewStatus(p *Point, width int) *Status {
+	d := NewDrawable(p)
 	d.Color = colorStatus()
-	d.End.X = w
+	d.End.X = width
 
 	return &Status{nil, d}
 }

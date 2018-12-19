@@ -2,8 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"io/ioutil"
-	"path/filepath"
 	"strings"
 
 	"github.com/jacokoo/fff/model"
@@ -26,10 +24,11 @@ func newFileList(p *Point, height int) *FileList {
 	return &FileList{list, filter, NewText(p, ""), NewDrawable(p)}
 }
 
-func (fl *FileList) setData(names []string, hints []int, current int, filter string) {
-	fl.list.SetData(names, hints, current)
-	fl.filter.Data = filter
-	fl.countInfo.Data = fmt.Sprintf("[%d/%d]", current+1, len(fl.list.Data))
+func (fl *FileList) setData(co model.Column) {
+	names, hints := fileNames(co)
+	fl.list.SetData(names, hints, co.Current())
+	fl.filter.Data = co.Filter()
+	fl.countInfo.Data = fmt.Sprintf("[%d/%d]", co.Current()+1, len(fl.list.Data))
 }
 
 func (fl *FileList) setFilter(filter string) {
@@ -46,13 +45,12 @@ func (fl *FileList) setCurrent(current int) {
 
 // Draw it
 func (fl *FileList) Draw() *Point {
-	p := fl.list.Draw().Down()
+	p := fl.list.MoveTo(fl.Start).Down()
 	fl.End = p
 
 	p = p.RightN(0)
-	p.X = fl.Start.X
 	fl.filter.MoveTo(p)
-	fl.countInfo.MoveTo(p.LeftN(2 + len(fl.countInfo.Data)))
+	fl.countInfo.MoveTo(p.LeftN(len(fl.countInfo.Data) + 1))
 	return fl.End
 }
 
@@ -106,16 +104,11 @@ func expandedName(size string, maxSize int, fi model.FileItem) string {
 	ti := fi.ModTime().Format("2006-01-02 15:04:05")
 	md := fi.Mode().String()
 	si := strings.Repeat(" ", maxSize-len(size)) + size
-	return fmt.Sprintf("%s  %s  %s  %s", ti, md, si, fi.Name())
+	return fmt.Sprintf("%s  %s  %s  %s ", ti, md, si, fi.Name())
 }
 
 func normalName(size string, v model.FileItem) string {
 	na := v.Name()
-	if v.IsDir() {
-		fs, _ := ioutil.ReadDir(filepath.Join(v.Path(), na))
-		size = fmt.Sprintf("%d it.", len(fs))
-	}
-
 	re := columnWidth - len(size) - 4
 	na, c := truncName(na, re-3)
 	re -= c

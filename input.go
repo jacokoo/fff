@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/jacokoo/fff/model"
+	"github.com/jacokoo/fff/ui"
 	"github.com/mattn/go-runewidth"
 )
 
@@ -84,7 +85,7 @@ func (co *columnInputer) Append(ch rune) {
 	fi := co.Filter() + string(ch)
 	co.SetFilter(fi)
 	co.Update()
-	gui <- uiColumnContentChange
+	ui.ColumnContentChangeEvent.Send(co.Column)
 }
 
 func (co *columnInputer) Delete() bool {
@@ -96,7 +97,7 @@ func (co *columnInputer) Delete() bool {
 	nn, _ := deleteLastChar(f)
 	co.SetFilter(nn)
 	co.Update()
-	gui <- uiColumnContentChange
+	ui.ColumnContentChangeEvent.Send(co.Column)
 	return true
 }
 
@@ -108,7 +109,7 @@ func handleInputKey() {
 		select {
 		case ch := <-input:
 			inputer.Append(ch)
-			gui <- uiInputChange
+			ui.InputChangeEvent.Send([]string{inputer.Name(), inputer.Get()})
 		case <-inputQuit:
 			return
 		}
@@ -118,15 +119,14 @@ func handleInputKey() {
 func enterInputMode(in Inputer) {
 	changeMode(ModeInput)
 	inputer = in
-	gui <- uiInputChange
+	ui.InputChangeEvent.Send([]string{inputer.Name(), inputer.Get()})
 	go handleInputKey()
 }
 
 func quitInputMode(abort bool) {
 	inputer.End(abort)
 	inputer = nil
-	gui <- uiQuitInput
-	inputQuit <- true
+	ui.QuitInputEvent.Send(wo.CurrentGroup().Current())
 	changeMode(ModeNormal)
 }
 
@@ -137,5 +137,5 @@ func inputDelete() {
 		return
 	}
 
-	gui <- uiInputChange
+	ui.InputChangeEvent.Send([]string{inputer.Name(), inputer.Get()})
 }

@@ -1,5 +1,7 @@
 package ui
 
+const minWidth = 10
+
 // List a list of string
 type List struct {
 	Selected   int
@@ -25,7 +27,7 @@ func NewList(p *Point, selected, height int, items []string, colorHints []int) *
 
 // Draw it
 func (l *List) Draw() *Point {
-	var maxX = 0
+	var maxX = l.Start.X + minWidth
 	from, to := 0, l.Height
 	if to > len(l.items) {
 		to = len(l.items)

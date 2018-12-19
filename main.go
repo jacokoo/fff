@@ -5,24 +5,28 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/jacokoo/fff/model"
 	"github.com/jacokoo/fff/ui"
 
 	termbox "github.com/nsf/termbox-go"
 )
 
 const (
-	maxGroups = 4
+	maxGroups   = 4
+	columnWidth = 30
 )
 
 var (
-	wo        = newWorkspace()
-	home      = os.Getenv("HOME")
-	configDir = filepath.Join(home, ".fff")
-	wd, _     = os.Getwd()
-	quit      = make(chan int)
-	message   string
-	cfg       = initConfig()
-	command   *exec.Cmd
+	home       = os.Getenv("HOME")
+	configDir  = filepath.Join(home, ".fff")
+	wd, _      = os.Getwd()
+	wo         = model.NewWorkspace(maxGroups, wd, configDir)
+	quit       = make(chan int)
+	cfg        = initConfig()
+	command    *exec.Cmd
+	ac         = new(action)
+	maxColumns int
+	gui        *ui.UI
 )
 
 func init() {
@@ -38,9 +42,9 @@ func start(redraw bool) {
 	maxColumns = w/columnWidth + 1
 
 	if redraw {
-		uiRedraw()
+		ui.Redraw()
 	} else {
-		uiStart()
+		gui = ui.Start(wo)
 	}
 	kbdStart()
 
@@ -58,7 +62,7 @@ func start(redraw bool) {
 			}
 
 			if quitIt != 0 {
-				guiQuit <- true
+				ui.GuiQuit <- true
 				termbox.Close()
 				kbdQuit <- true
 				quit <- quitIt
@@ -82,13 +86,13 @@ func main() {
 				go start(true)
 				break
 			}
-			os.Chdir(wo.currentDir())
+			os.Chdir(wo.CurrentGroup().Path())
 			command.Stdin = os.Stdin
 			command.Stderr = os.Stderr
 			command.Stdout = os.Stdout
 			err := command.Run()
 			if err != nil {
-				message = err.Error()
+				// message = err.Error()
 			}
 			command = nil
 			go start(true)

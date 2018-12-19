@@ -9,7 +9,8 @@ import (
 // Path represent seperated path
 type Path struct {
 	*Keyed
-	items []*Text
+	items     []*Text
+	PathItems []string
 }
 
 func pathItems(path string) []string {
@@ -47,17 +48,20 @@ func createPathItems(items []string) (*DrawerList, []*Text) {
 
 // NewPath create path
 func NewPath(p *Point, name string, path string) *Path {
-	dl, its := createPathItems(pathItems(path))
+	ps := pathItems(path)
+	dl, its := createPathItems(ps)
 	kd := NewKeyed(p, name, dl)
-	return &Path{kd, its}
+	return &Path{kd, its, ps}
 }
 
 // SetValue update value
-func (p *Path) SetValue(items []string) {
+func (p *Path) SetValue(path string) {
+	ps := pathItems(path)
 	p.Clear()
-	dl, its := createPathItems(items)
+	dl, its := createPathItems(ps)
 	p.Keyed.item = dl
 	p.items = its
+	p.PathItems = ps
 	p.Draw()
 }
 

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os/exec"
 
+	"github.com/jacokoo/fff/ui"
+
 	"github.com/jacokoo/fff/model"
 
 	termbox "github.com/nsf/termbox-go"
@@ -109,36 +111,36 @@ var (
 
 	actions = map[string]func(){
 		"ActionQuit":               func() {},
-		"ActionSortByName":         func() { wo.sort(model.OrderByName) },
-		"ActionSortByMtime":        func() { wo.sort(model.OrderByMTime) },
-		"ActionSortBySize":         func() { wo.sort(model.OrderBySize) },
-		"ActionToggleHidden":       func() { wo.toggleHidden() },
-		"ActionToggleDetail":       func() { wo.toggleDetails() },
-		"ActionMoveDown":           func() { wo.move(1) },
-		"ActionMoveUp":             func() { wo.move(-1) },
-		"ActionMoveToFirst":        func() { wo.moveToFirst() },
-		"ActionMoveToLast":         func() { wo.moveToLast() },
-		"ActionOpenFolderRight":    func() { wo.openRight() },
-		"ActionOpenFile":           func() { wo.openFile() },
-		"ActionCloseFolderRight":   func() { wo.closeRight() },
-		"ActionShift":              func() { wo.shift() },
-		"ActionToggleBookmark":     func() { wo.toggleBookmark() },
-		"ActionChangeGroup0":       func() { wo.changeGroup(0) },
-		"ActionChangeGroup1":       func() { wo.changeGroup(1) },
-		"ActionChangeGroup2":       func() { wo.changeGroup(2) },
-		"ActionChangeGroup3":       func() { wo.changeGroup(3) },
-		"ActionRefresh":            func() { wo.refresh() },
+		"ActionSortByName":         func() { ac.sort(model.OrderByName) },
+		"ActionSortByMtime":        func() { ac.sort(model.OrderByMTime) },
+		"ActionSortBySize":         func() { ac.sort(model.OrderBySize) },
+		"ActionToggleHidden":       func() { ac.toggleHidden() },
+		"ActionToggleDetail":       func() { ac.toggleDetails() },
+		"ActionMoveDown":           func() { ac.move(1) },
+		"ActionMoveUp":             func() { ac.move(-1) },
+		"ActionMoveToFirst":        func() { ac.moveToFirst() },
+		"ActionMoveToLast":         func() { ac.moveToLast() },
+		"ActionOpenFolderRight":    func() { ac.openRight() },
+		"ActionOpenFile":           func() { ac.openFile() },
+		"ActionCloseFolderRight":   func() { ac.closeRight() },
+		"ActionShift":              func() { ac.shift() },
+		"ActionToggleBookmark":     func() { ac.toggleBookmark() },
+		"ActionChangeGroup0":       func() { ac.changeGroup(0) },
+		"ActionChangeGroup1":       func() { ac.changeGroup(1) },
+		"ActionChangeGroup2":       func() { ac.changeGroup(2) },
+		"ActionChangeGroup3":       func() { ac.changeGroup(3) },
+		"ActionRefresh":            func() { ac.refresh() },
 		"ActionQuitJump":           func() { quitJumpMode() },
-		"ActionClearMark":          func() { wo.clearMark() },
-		"ActionToggleMark":         func() { wo.toggleMark() },
+		"ActionClearMark":          func() { ac.clearMark() },
+		"ActionToggleMark":         func() { ac.toggleMark() },
 		"ActionJumpCurrentDirOnce": func() { enterJumpMode(JumpModeCurrentDir, false) },
 		"ActionJumpCurrentDir":     func() { enterJumpMode(JumpModeCurrentDir, true) },
 		"ActionJumpBookmarkOnce":   func() { enterJumpMode(JumpModeBookmark, false) },
 		"ActionJumpBookmark":       func() { enterJumpMode(JumpModeBookmark, true) },
 		"ActionJumpAllOnce":        func() { enterJumpMode(JumpModeAll, false) },
 		"ActionJumpAll":            func() { enterJumpMode(JumpModeAll, true) },
-		"ActionStartFilter":        func() { enterInputMode(&columnInputer{wo.currentColumn()}) },
-		"ActionClearFilter":        func() { wo.clearFilter() },
+		"ActionStartFilter":        func() { enterInputMode(&columnInputer{wo.CurrentGroup().Current()}) },
+		"ActionClearFilter":        func() { ac.clearFilter() },
 		"ActionQuitInputMode":      func() { quitInputMode(false) },
 		"ActionAbortInputMode":     func() { quitInputMode(true) },
 		"ActionInputDelete":        func() { inputDelete() },
@@ -149,7 +151,7 @@ var (
 		"ActionDeleteBookmark":     func() { enterJumpMode(JumpModeDeleteBookmark, false) },
 
 		"ActionDeleteFile": func() {
-			s := wo.deletePrompt()
+			s := ac.deletePrompt()
 			if s == "" {
 				return
 			}
@@ -158,14 +160,14 @@ var (
 		},
 
 		"ActionEdit": func() {
-			file, err := wo.currentColumn().CurrentFile()
+			file, err := wo.CurrentGroup().Current().CurrentFile()
 			if err != nil || file.IsDir() {
 				return
 			}
 			command = cfg.cmd(fmt.Sprintf("%s %s", cfg.editor, file.Path()))
 		},
 		"ActionView": func() {
-			file, err := wo.currentColumn().CurrentFile()
+			file, err := wo.CurrentGroup().Current().CurrentFile()
 			if err != nil || file.IsDir() {
 				return
 			}
@@ -184,14 +186,14 @@ var (
 
 	currentKbds        = cfg.normalKbds
 	keyPrefixed        = false
-	newFileInputer     = newNameInput("NEW FILE", func(name string) { wo.newFile(name) })
-	newDirInputer      = newNameInput("NEW DIR", func(name string) { wo.newDir(name) })
-	renameInputer      = newNameInput("RENAME", func(name string) { wo.rename(name) })
-	addBookmarkInputer = newNameInput("BOOKMARK NAME", func(name string) { wo.addBookmark(name, wo.currentDir()) })
+	newFileInputer     = newNameInput("NEW FILE", func(name string) { ac.newFile(name) })
+	newDirInputer      = newNameInput("NEW DIR", func(name string) { ac.newDir(name) })
+	renameInputer      = newNameInput("RENAME", func(name string) { ac.rename(name) })
+	addBookmarkInputer = newNameInput("BOOKMARK NAME", func(name string) { ac.addBookmark(name, wo.CurrentGroup().Path()) })
 
 	deleteFileInputer = newNameInput("", func(name string) {
 		if name == "y" {
-			wo.deleteFiles()
+			ac.deleteFiles()
 		}
 	})
 )
@@ -203,8 +205,7 @@ func changeMode(to Mode) {
 
 func restoreKbds() {
 	if keyPrefixed {
-		message = ""
-		gui <- uiErrorMessage
+		ui.MessageEvent.Send("")
 	}
 	keyPrefixed = false
 
@@ -261,8 +262,7 @@ func doAction(ev termbox.Event) {
 			m += "    "
 		}
 	}
-	message = m
-	gui <- uiErrorMessage
+	ui.MessageEvent.Send(m)
 	keyPrefixed = true
 }
 
@@ -289,7 +289,7 @@ func isShell(ev termbox.Event) bool {
 			return true
 		}
 		if kb.action == "ActionEdit" || kb.action == "ActionView" {
-			file, err := wo.currentColumn().CurrentFile()
+			file, err := wo.CurrentGroup().Current().CurrentFile()
 			return err == nil && !file.IsDir()
 		}
 	}

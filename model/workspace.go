@@ -1,11 +1,27 @@
 package model
 
+import (
+	"path/filepath"
+)
+
 // Workspace hold all state
 type Workspace struct {
 	Groups       []Group
 	Current      int
+	Bookmark     *Bookmark
 	showBookmark bool
-	bookmark     *Bookmark
+}
+
+// NewWorkspace create workspace
+func NewWorkspace(maxGroups int, wd, configDir string) *Workspace {
+	gs := make([]Group, maxGroups)
+	g, err := NewLocalGroup(wd)
+	if err != nil {
+		panic(err)
+	}
+	gs[0] = g
+
+	return &Workspace{gs, 0, NewBookmark(filepath.Join(configDir, "bookmarks")), true}
 }
 
 // CurrentGroup get the current group in use
