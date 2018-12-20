@@ -124,7 +124,7 @@ func (w *action) jumpTo(colIdx, fileIdx int, openIt bool) bool {
 		return false
 	}
 
-	co.Update()
+	co.ClearMark()
 	if co.IsShowDetail() {
 		co.ToggleDetail()
 	}

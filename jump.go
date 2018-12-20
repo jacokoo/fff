@@ -1,8 +1,120 @@
 package main
 
 import (
+	"unicode"
+
 	"github.com/jacokoo/fff/ui"
 )
+
+// the root is empty
+// the first level is head key, won't change
+// flat the second level
+type keyTree struct {
+	key      rune
+	parent   *keyTree
+	children []*keyTree
+	item     *ui.JumpItem
+}
+
+// kt is the second level
+func (kt *keyTree) flat() {
+	if kt.key == '-' {
+		kt.resetKey()
+	}
+	cc := len(kt.children)
+	if len(kt.parent.children) == 1 && cc == 1 {
+		kt.children[0].item.Key = []rune{kt.parent.key}
+		return
+	}
+
+	if cc == 1 {
+		kt.children[0].item.Key = []rune{kt.parent.key, kt.key}
+		return
+	}
+
+	for i := 0; i < cc-1; i++ {
+		kt.children[i].resetKey()
+		kt.children[i].item.Key = []rune{kt.parent.key, kt.children[i].key}
+	}
+
+	kt.children[cc-1].item.Key = []rune{kt.parent.key, kt.key}
+}
+
+func (kt *keyTree) resetKey() {
+	if kt.parent == nil {
+		return
+	}
+	kt.key = kt.parent.findKey()
+}
+
+func (kt *keyTree) findKey() rune {
+	key := ' '
+	for i := 'a'; i <= 'z'; i++ {
+		if !kt.have(i) {
+			key = i
+			break
+		}
+	}
+
+	if key != ' ' {
+		return key
+	}
+
+	for i := 'A'; i <= 'Z'; i++ {
+		if !kt.have(i) {
+			key = i
+			break
+		}
+	}
+	return key
+}
+
+func flatIt(root *keyTree) {
+	for _, v := range root.children {
+		if v.key == '-' {
+			v.resetKey()
+		}
+
+		for _, vv := range v.children {
+			vv.flat()
+		}
+	}
+}
+
+func (kt *keyTree) add(idx int, item *ui.JumpItem) {
+	if idx >= len(item.Key) {
+		kt.children = append(kt.children, &keyTree{'$', kt, nil, item})
+		return
+	}
+	k := unicode.ToLower(item.Key[idx])
+	if (k < 'a' || k > 'z') && (k < '0' || k > '9') {
+		k = '-'
+	}
+
+	var p *keyTree
+	for _, v := range kt.children {
+		if v.key == k {
+			p = v
+			break
+		}
+	}
+
+	if p == nil {
+		p = &keyTree{k, kt, nil, nil}
+		kt.children = append(kt.children, p)
+	}
+
+	p.add(idx+1, item)
+}
+
+func (kt *keyTree) have(key rune) bool {
+	for _, v := range kt.children {
+		if v.key == key {
+			return true
+		}
+	}
+	return false
+}
 
 // JumpMode describe the jump mode
 type JumpMode uint8
@@ -22,41 +134,12 @@ var (
 	jumpItems    []*ui.JumpItem
 )
 
-func oneCharKey(items []*ui.JumpItem) {
-	idx, length := 0, len(items)
-	for ch := 'a'; ch < 'z' && idx < length; ch++ {
-		items[idx].Key = []rune{ch}
-		idx++
-	}
-
-	if idx < length {
-		for ch := 'A'; ch < 'Z' && idx < length; ch++ {
-			items[idx].Key = []rune{ch}
-			idx++
-		}
-	}
-}
-
-func twoCharKey(items []*ui.JumpItem) {
-	idx, length := 0, len(items)
-	for ch := 'a'; ch < 'z'; ch++ {
-		for ch2 := 'a'; ch2 < 'z'; ch2++ {
-			if idx >= length {
-				return
-			}
-			items[idx].Key = []rune{ch, ch2}
-			idx++
-		}
-	}
-}
-
 func keyThem(items []*ui.JumpItem) {
-	count := len(items)
-	if count <= 52 { // a-zA-Z
-		oneCharKey(items)
-		return
+	tree := &keyTree{' ', nil, nil, nil}
+	for _, v := range items {
+		tree.add(0, v)
 	}
-	twoCharKey(items)
+	flatIt(tree)
 }
 
 func handleJumpResult(item *ui.JumpItem) {
