@@ -27,8 +27,8 @@ func newFileList(p *Point, height int) *FileList {
 func (fl *FileList) setData(co model.Column) {
 	names, hints := fileNames(co)
 	fl.list.SetData(names, hints, co.Current())
-	fl.filter.Data = co.Filter()
-	fl.countInfo.Data = fmt.Sprintf("[%d/%d]", co.Current()+1, len(fl.list.Data))
+	fl.setFilter(co.Filter())
+	fl.setCurrent(co.Current())
 }
 
 func (fl *FileList) setFilter(filter string) {
@@ -46,10 +46,13 @@ func (fl *FileList) setCurrent(current int) {
 // Draw it
 func (fl *FileList) Draw() *Point {
 	p := fl.list.MoveTo(fl.Start).Down()
+	pp := p.Right()
+	pp.X = fl.Start.X
+	fl.filter.MoveTo(pp)
+
 	fl.End = p
 
 	p = p.RightN(0)
-	fl.filter.MoveTo(p)
 	fl.countInfo.MoveTo(p.LeftN(len(fl.countInfo.Data) + 1))
 	return fl.End
 }
