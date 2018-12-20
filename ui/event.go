@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/jacokoo/fff/model"
-	"github.com/nsf/termbox-go"
+	termbox "github.com/nsf/termbox-go"
 )
 
 // EventType event type
@@ -169,7 +169,6 @@ var handlers = map[EventType]func(interface{}){
 		if data.(bool) {
 			its := []*ColumnItem{ui.bkColumn}
 			ui.Column.items = append(its, ui.Column.items...)
-			ui.Column.items = its
 		} else {
 			ui.Column.items = ui.Column.items[1:]
 		}

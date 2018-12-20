@@ -277,7 +277,7 @@ func enterJumpMode(md JumpMode, cj bool) {
 	case JumpModeDeleteBookmark:
 		jumpItems = collectBookmark(true)
 	case JumpModeCurrentDir:
-		jumpItems = append(collectCurrentPath(), collectCurrentDir()...)
+		jumpItems = collectCurrentDir()
 	case JumpModeAll:
 		jumpItems = append(collectBookmark(false), collectCurrentPath()...)
 		jumpItems = append(jumpItems, collectAllDir()...)
