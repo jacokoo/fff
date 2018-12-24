@@ -16,10 +16,63 @@ type keyTree struct {
 	item     *ui.JumpItem
 }
 
-// kt is the second level
-func (kt *keyTree) flat() {
+func have1st(kt *keyTree, key rune) bool {
+	for _, v := range kt.children {
+		if v.key == key {
+			return true
+		}
+	}
+	return false
+}
+
+func have2nd(kt *keyTree, key rune) bool {
+	for _, v := range kt.children {
+		for _, vv := range v.children {
+			if vv.key == key {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func findKey(kt *keyTree, have func(*keyTree, rune) bool) rune {
+	key := ' '
+	for i := 'a'; i <= 'z'; i++ {
+		if !have(kt, i) {
+			key = i
+			break
+		}
+	}
+
+	if key != ' ' {
+		return key
+	}
+
+	for i := 'A'; i <= 'Z'; i++ {
+		if !have(kt, i) {
+			key = i
+			break
+		}
+	}
+	return key
+}
+
+func flat1st(root *keyTree) {
+	for _, v := range root.children {
+		if v.key == '-' {
+			v.key = findKey(root, have1st)
+		}
+
+		for _, vv := range v.children {
+			flat3rd(vv)
+		}
+	}
+}
+
+func flat3rd(kt *keyTree) {
 	if kt.key == '-' {
-		kt.resetKey()
+		kt.key = findKey(kt.parent, have2nd)
 	}
 	cc := len(kt.children)
 	if len(kt.parent.children) == 1 && cc == 1 {
@@ -32,52 +85,12 @@ func (kt *keyTree) flat() {
 		return
 	}
 
-	for i := 0; i < cc-1; i++ {
-		kt.children[i].resetKey()
+	kt.children[0].key = kt.key
+	kt.children[0].item.Key = []rune{kt.parent.key, kt.key}
+
+	for i := 1; i < cc; i++ {
+		kt.children[i].key = findKey(kt.parent, have2nd)
 		kt.children[i].item.Key = []rune{kt.parent.key, kt.children[i].key}
-	}
-
-	kt.children[cc-1].item.Key = []rune{kt.parent.key, kt.key}
-}
-
-func (kt *keyTree) resetKey() {
-	if kt.parent == nil {
-		return
-	}
-	kt.key = kt.parent.findKey()
-}
-
-func (kt *keyTree) findKey() rune {
-	key := ' '
-	for i := 'a'; i <= 'z'; i++ {
-		if !kt.have(i) {
-			key = i
-			break
-		}
-	}
-
-	if key != ' ' {
-		return key
-	}
-
-	for i := 'A'; i <= 'Z'; i++ {
-		if !kt.have(i) {
-			key = i
-			break
-		}
-	}
-	return key
-}
-
-func flatIt(root *keyTree) {
-	for _, v := range root.children {
-		if v.key == '-' {
-			v.resetKey()
-		}
-
-		for _, vv := range v.children {
-			vv.flat()
-		}
 	}
 }
 
@@ -107,15 +120,6 @@ func (kt *keyTree) add(idx int, item *ui.JumpItem) {
 	p.add(idx+1, item)
 }
 
-func (kt *keyTree) have(key rune) bool {
-	for _, v := range kt.children {
-		if v.key == key {
-			return true
-		}
-	}
-	return false
-}
-
 // JumpMode describe the jump mode
 type JumpMode uint8
 
@@ -139,7 +143,7 @@ func keyThem(items []*ui.JumpItem) {
 	for _, v := range items {
 		tree.add(0, v)
 	}
-	flatIt(tree)
+	flat1st(tree)
 }
 
 func handleJumpResult(item *ui.JumpItem) {

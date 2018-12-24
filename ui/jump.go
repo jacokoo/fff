@@ -62,7 +62,7 @@ func (p *Path) JumpItems(fn func(string) func() bool) []*JumpItem {
 func (fl *List) JumpItems(fn func(int) func() bool) []*JumpItem {
 	re := make([]*JumpItem, 0)
 	for i := fl.from; i < fl.to; i++ {
-		it := fl.items[i-fl.from]
+		it := fl.items[i]
 		ac := fn(i)
 		if ac == nil {
 			continue
