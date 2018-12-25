@@ -17,7 +17,7 @@ type Operator interface {
 	NewDir(parent, name string) error
 	DeleteFile(path string) error
 	DeleteDir(path string) error
-	CopyFile(path, newPath string, result chan<- error)
+	CopyFile(path, newPath string, progress chan<- int, result chan<- error)
 	Open(path string) error
 }
 
@@ -67,29 +67,58 @@ func (o *LocalOperator) DeleteDir(path string) error {
 }
 
 // CopyFile copy file
-func (o *LocalOperator) CopyFile(path, newPath string, result chan<- error) {
+func (o *LocalOperator) CopyFile(path, newPath string, progress chan<- int, result chan<- error) {
 	defer close(result)
+
+	fi, err := os.Lstat(path)
+	if err != nil {
+		result <- err
+		return
+	}
+	si := float64(fi.Size())
+
 	fo, err := os.Open(path)
 	if err != nil {
 		result <- err
 		return
 	}
+	defer fo.Close()
 
 	fn, err := os.OpenFile(newPath, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
 		result <- err
 		return
 	}
+	defer fn.Close()
 
-	_, err = io.Copy(fn, fo)
-	if err != nil {
-		result <- err
+	buf := make([]byte, 4096)
+	var count int64
+
+	for {
+		n, err := fo.Read(buf)
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			result <- err
+			return
+		}
+
+		_, err = fn.Write(buf)
+		if err != nil {
+			result <- err
+			return
+		}
+
+		count += int64(n)
+		progress <- int(float64(count) / si * 100)
 	}
 }
 
 // Open file
 func (o *LocalOperator) Open(path string) error {
-	cmd := exec.Command("open", path)
+	cmd := exec.Command("open", path) // macos only
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
