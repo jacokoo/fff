@@ -65,6 +65,9 @@ const (
 	// ClipChangedEvent clip changed Data CopySource
 	ClipChangedEvent
 
+	// TaskChangedEvent Data: TaskManager
+	TaskChangedEvent
+
 	changeCurrent
 )
 
@@ -266,11 +269,13 @@ func init() {
 		},
 
 		ClipChangedEvent: func(data interface{}) {
-			ui.Clip.Clear()
+			if ui.Clip.Data != "" {
+				ui.Clip.Clear()
+			}
 			ui.Clip.Data = ""
 			if data != nil {
-				ui.Clip.SetData(fmt.Sprintf("%d clips", len(data.(model.CopySource))))
-				ui.Clip.Draw()
+				ui.Clip.Data = fmt.Sprintf("[%d clips]", len(data.(model.CopySource)))
+				ui.Clip.MoveTo(ui.Path.End.Right())
 			}
 		},
 
@@ -278,6 +283,20 @@ func init() {
 			for k, v := range data.(map[EventType]interface{}) {
 				dispatch(k, v)
 			}
+		},
+
+		TaskChangedEvent: func(data interface{}) {
+			if ui.tasks.Data != "" {
+				ui.tasks.Clear()
+			}
+			tm := data.(*model.TaskManager)
+			m := ""
+
+			for _, v := range tm.Tasks {
+				m = fmt.Sprintf("%s[%s %d/%d]", m, v.Name(), v.Progress()+1, v.Count())
+			}
+			ui.tasks.Data = m
+			ui.tasks.MoveTo(ui.helpMark.Start.Left())
 		},
 	} {
 		handlers[k] = v

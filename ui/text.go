@@ -93,3 +93,27 @@ func (l *Label) SetData(data string) {
 	l.Data = data
 	l.text.Data = data
 }
+
+// RightText right align text
+type RightText struct {
+	*Text
+}
+
+// NewRightText create RightText
+func NewRightText(p *Point, data string) *RightText {
+	return &RightText{NewText(p, data)}
+}
+
+// Draw it
+func (rt *RightText) Draw() *Point {
+	si := len(rt.Data)
+	rt.Start.X = rt.End.X - si
+	return rt.Text.Draw()
+}
+
+// MoveTo update location
+func (rt *RightText) MoveTo(p *Point) *Point {
+	rt.Start = p
+	rt.End = p
+	return rt.Draw()
+}

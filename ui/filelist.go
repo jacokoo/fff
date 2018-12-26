@@ -83,22 +83,23 @@ func truncName(str string, count int) (string, int) {
 func formatSize(size int64) string {
 	unit := "B"
 	b := float32(size)
+	base := float32(1000)
 
-	if b > 1024 {
+	if b > base {
 		unit = "K"
-		b = b / 1024
+		b = b / base
 	} else {
 		return fmt.Sprintf("%dB", size)
 	}
 
-	if b > 1024 {
+	if b > base {
 		unit = "M"
-		b = b / 1024
+		b = b / base
 	}
 
-	if b > 1024 {
+	if b > base {
 		unit = "G"
-		b = b / 1024
+		b = b / base
 	}
 	return fmt.Sprintf("%.2f%s", b, unit)
 }

@@ -373,15 +373,25 @@ func (w *action) copyFile() {
 		ui.MessageEvent.Send("No file to copy")
 		return
 	}
+	ch := make(chan int)
+	task.Attach(ch)
+	go func() {
+		for range ch {
+			ui.TaskChangedEvent.Send(tm)
+		}
+	}()
 
 	msg := tm.Submit(task)
 	go func() {
 		for v := range msg {
 			ui.MessageEvent.Send(v)
 		}
-		ui.MessageEvent.Send("Copy done")
+		ui.TaskChangedEvent.Send(tm)
 	}()
-	ui.ClipChangedEvent.Send(nil)
+	ui.Batch(
+		ui.ClipChangedEvent.With(nil),
+		ui.TaskChangedEvent.With(tm),
+	)
 }
 
 func (w *action) moveFile() {

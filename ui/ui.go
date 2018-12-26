@@ -28,10 +28,12 @@ var (
 type UI struct {
 	Tab      *Tab
 	Path     *Path
-	Clip     *Label
+	Clip     *Text
 	Column   *Column
 	Bookmark *Bookmark
 	bkColumn *ColumnItem
+	helpMark *RightText
+	tasks    *RightText
 
 	Status        *Status
 	StatusMessage *StatusBackup
@@ -89,13 +91,17 @@ func createUI(wo *model.Workspace) {
 
 	ui.Path = NewPath(p, "", wo.CurrentGroup().Path())
 	p = ui.Path.Draw()
-	ui.Clip = NewLabel(p.Right(), "", "")
+	ui.Clip = NewText(p.Right(), "")
 
 	p = ZeroPoint.DownN(3)
 	w, h := termbox.Size()
 	ui.Column = NewColumn(p, w, h-4)
 	ui.Bookmark = NewBookmark(ZeroPoint, h-4, wo.Bookmark.Names)
 	initFiles(wo.IsShowBookmark(), wo.CurrentGroup())
+
+	ui.helpMark = NewRightText(ZeroPoint.Down().RightN(w), "[Press ? for help]")
+	p = ui.helpMark.Draw()
+	ui.tasks = NewRightText(p.Left(), "")
 
 	ui.Status = NewStatus(&Point{0, h - 1}, w)
 	ui.Status.Draw()
@@ -147,6 +153,8 @@ func Redraw() {
 	ui.Tab.Draw()
 	ui.Path.Draw()
 	ui.Clip.Draw()
+	ui.helpMark.Draw()
+	ui.tasks.Draw()
 	ui.Column.Draw()
 	ui.StatusMessage.Restore().Set(0, "")
 	termbox.Flush()

@@ -4,6 +4,7 @@ package model
 type Task interface {
 	Name() string
 	Count() int
+	Progress() int
 	Start(<-chan bool, chan<- error)
 	Attach(chan<- int)
 	Detach(chan<- int)
@@ -18,13 +19,14 @@ type BatchTask interface {
 // DefaultTask default task
 type DefaultTask struct {
 	name      string
+	progress  int
 	listeners []chan<- int
 	action    func(chan<- int, <-chan bool, chan<- error)
 }
 
 // NewTask create task
 func NewTask(name string, action func(chan<- int, <-chan bool, chan<- error)) Task {
-	return &DefaultTask{name, nil, action}
+	return &DefaultTask{name, 0, nil, action}
 }
 
 // Name return task name
@@ -35,6 +37,11 @@ func (dt *DefaultTask) Name() string {
 // Count default to 100
 func (dt *DefaultTask) Count() int {
 	return 100
+}
+
+// Progress the progress
+func (dt *DefaultTask) Progress() int {
+	return dt.progress
 }
 
 func (dt *DefaultTask) close() {
@@ -58,6 +65,7 @@ func (dt *DefaultTask) Start(quit <-chan bool, err chan<- error) {
 			if !ok {
 				return
 			}
+			dt.progress = p
 			for _, v := range dt.listeners {
 				v <- p
 			}
@@ -87,15 +95,14 @@ func (dt *DefaultTask) Detach(listener chan<- int) {
 
 // DefaultBatchTask default batch task
 type DefaultBatchTask struct {
-	count   int
-	current int
-	tasks   []Task
+	count int
+	tasks []Task
 	*DefaultTask
 }
 
 // NewBatchTask create batch task
 func NewBatchTask(name string, tasks []Task) BatchTask {
-	return &DefaultBatchTask{len(tasks), 0, tasks, &DefaultTask{name, nil, nil}}
+	return &DefaultBatchTask{len(tasks), tasks, &DefaultTask{name, 0, nil, nil}}
 }
 
 // Count the count of tasks
@@ -105,12 +112,12 @@ func (bt *DefaultBatchTask) Count() int {
 
 // Progress the index of current task
 func (bt *DefaultBatchTask) Progress() int {
-	return bt.current
+	return bt.progress
 }
 
 // CurrentTask the current task
 func (bt *DefaultBatchTask) CurrentTask() Task {
-	return bt.tasks[bt.current]
+	return bt.tasks[bt.progress]
 }
 
 // Start task one by one
@@ -122,7 +129,7 @@ func (bt *DefaultBatchTask) Start(quit <-chan bool, err chan<- error) {
 		qt := make(chan bool)
 		prog := make(chan int)
 		err1 := make(chan error)
-		bt.current = i
+		bt.progress = i
 
 		t.Attach(prog)
 		go t.Start(qt, err1)
