@@ -43,7 +43,6 @@ binding:
       "d": ActionDeleteBookmark           ; Delete bookmark
       "w": ActionJumpBookmarkOnce         ; Jump Once
       "W": ActionJumpBookmark             ; Jump
-    "r": ActionRefresh                    # Refresh current dir
     "1": ActionChangeGroup0               # Change group to 1
     "2": ActionChangeGroup1               # Change group to 2
     "3": ActionChangeGroup2               # Change group to 3
@@ -55,16 +54,21 @@ binding:
     "left": ActionCloseFolderRight        # Go to parent folder
     "m": ActionToggleMark                 # Toggle mark
     "u": ActionClearMark                  # Clear all marks
-    "g": ActionJumpCurrentDirOnce         # Jump over current dir and stop after one jump
-    "G": ActionJumpCurrentDir             # Jump over current dir
+    "i": ActionJumpCurrentDirOnce         # Jump over current dir and stop after one jump
+    "I": ActionJumpCurrentDir             # Jump over current dir
     "w": ActionJumpAllOnce                # Jump over items that can jump and stop after one jump
     "W": ActionJumpAll                    # Jump over items that can jump
     "f": ActionStartFilter                # Filter
     "F": ActionClearFilter                # Clear filter
+    "g": ActionRefresh                    # Refresh current dir
     "+": ActionNewDir                     # Create new dir in current dir
     "N": ActionNewFile                    # Create new file in current dir
     "R": ActionRename                     # Rename current file
     "D": ActionDeleteFile                 # Delete marked files or current file
+    "C": ActionAppendClip                 # Append file to clip
+    "U": ActionClearClip                  # Clear clip
+    "P": ActionPaste                      # Paste file
+    "M": ActionMoveFile                   # Move file
     "!": ActionShell                      # Run shell
     "e": ActionEdit                       # Run editor
     "v": ActionView                       # Run pager

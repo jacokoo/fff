@@ -149,6 +149,10 @@ var (
 		"ActionRename":             func() { enterInputMode(renameInputer) },
 		"ActionAddBookmark":        func() { enterInputMode(addBookmarkInputer) },
 		"ActionDeleteBookmark":     func() { enterJumpMode(JumpModeDeleteBookmark, false) },
+		"ActionAppendClip":         func() { ac.clipFile() },
+		"ActionPaste":              func() { ac.copyFile() },
+		"ActionMoveFile":           func() { ac.moveFile() },
+		"ActionClearClip":          func() { ac.clearClip() },
 
 		"ActionDeleteFile": func() {
 			s := ac.deletePrompt()

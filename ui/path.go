@@ -57,12 +57,10 @@ func NewPath(p *Point, name string, path string) *Path {
 // SetValue update value
 func (p *Path) SetValue(path string) {
 	ps := pathItems(path)
-	p.Clear()
 	dl, its := createPathItems(ps)
 	p.Keyed.item = dl
 	p.items = its
 	p.PathItems = ps
-	p.Draw()
 }
 
 // ItemRects rect for jump

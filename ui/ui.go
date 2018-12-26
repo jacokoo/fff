@@ -28,6 +28,7 @@ var (
 type UI struct {
 	Tab      *Tab
 	Path     *Path
+	Clip     *Label
 	Column   *Column
 	Bookmark *Bookmark
 	bkColumn *ColumnItem
@@ -87,7 +88,8 @@ func createUI(wo *model.Workspace) {
 	p = ui.Tab.Draw().Right()
 
 	ui.Path = NewPath(p, "", wo.CurrentGroup().Path())
-	ui.Path.Draw()
+	p = ui.Path.Draw()
+	ui.Clip = NewLabel(p.Right(), "", "")
 
 	p = ZeroPoint.DownN(3)
 	w, h := termbox.Size()
@@ -144,6 +146,7 @@ func Start(wo *model.Workspace) *UI {
 func Redraw() {
 	ui.Tab.Draw()
 	ui.Path.Draw()
+	ui.Clip.Draw()
 	ui.Column.Draw()
 	ui.StatusMessage.Restore().Set(0, "")
 	termbox.Flush()

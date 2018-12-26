@@ -17,7 +17,7 @@ type Operator interface {
 	NewDir(parent, name string) error
 	DeleteFile(path string) error
 	DeleteDir(path string) error
-	CopyFile(path, newPath string, progress chan<- int, result chan<- error)
+	CopyFile(path, newPath string, progress chan<- int, result chan<- error, quit <-chan bool)
 	Open(path string) error
 }
 
@@ -42,6 +42,11 @@ func (o *LocalOperator) Rename(parent, file, name string) error {
 
 // Move file
 func (o *LocalOperator) Move(path, newPath string) error {
+	dir := filepath.Dir(newPath)
+	err := os.MkdirAll(dir, 0755)
+	if err != nil {
+		return err
+	}
 	return os.Rename(path, newPath)
 }
 
@@ -67,8 +72,13 @@ func (o *LocalOperator) DeleteDir(path string) error {
 }
 
 // CopyFile copy file
-func (o *LocalOperator) CopyFile(path, newPath string, progress chan<- int, result chan<- error) {
+func (o *LocalOperator) CopyFile(path, newPath string, progress chan<- int, result chan<- error, quit <-chan bool) {
 	defer close(result)
+	defer close(progress)
+
+	if path == newPath {
+		return
+	}
 
 	fi, err := os.Lstat(path)
 	if err != nil {
@@ -84,6 +94,13 @@ func (o *LocalOperator) CopyFile(path, newPath string, progress chan<- int, resu
 	}
 	defer fo.Close()
 
+	dir := filepath.Dir(newPath)
+	err = os.MkdirAll(dir, 0755)
+	if err != nil {
+		result <- err
+		return
+	}
+
 	fn, err := os.OpenFile(newPath, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
 		result <- err
@@ -93,8 +110,15 @@ func (o *LocalOperator) CopyFile(path, newPath string, progress chan<- int, resu
 
 	buf := make([]byte, 4096)
 	var count int64
+	pg := 0
+	var quited = false
 
-	for {
+	go func() {
+		<-quit
+		quited = true
+	}()
+
+	for !quited {
 		n, err := fo.Read(buf)
 		if err == io.EOF {
 			break
@@ -105,14 +129,18 @@ func (o *LocalOperator) CopyFile(path, newPath string, progress chan<- int, resu
 			return
 		}
 
-		_, err = fn.Write(buf)
+		_, err = fn.Write(buf[:n])
 		if err != nil {
 			result <- err
 			return
 		}
 
 		count += int64(n)
-		progress <- int(float64(count) / si * 100)
+		pp := int(float64(count) / si * 100)
+		if pp > pg {
+			pg = pp
+			progress <- pg
+		}
 	}
 }
 

@@ -17,16 +17,19 @@ const (
 )
 
 var (
-	home       = os.Getenv("HOME")
-	configDir  = filepath.Join(home, ".fff")
-	wd, _      = os.Getwd()
-	wo         = model.NewWorkspace(maxGroups, wd, configDir)
-	quit       = make(chan int)
-	cfg        = initConfig()
-	command    *exec.Cmd
-	ac         = new(action)
+	home      = os.Getenv("HOME")
+	configDir = filepath.Join(home, ".fff")
+	wd, _     = os.Getwd()
+	wo        = model.NewWorkspace(maxGroups, wd, configDir)
+	quit      = make(chan int)
+	cfg       = initConfig()
+	command   *exec.Cmd
+	ac        = new(action)
+	tm        = model.NewTaskManager()
+
 	maxColumns int
 	gui        *ui.UI
+	clip       model.CopySource
 )
 
 func init() {

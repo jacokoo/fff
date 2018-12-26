@@ -74,3 +74,22 @@ func (k *Keyed) MoveTo(p *Point) *Point {
 	k.End = k.right.MoveTo(e.Right())
 	return k.End
 }
+
+// Label key value
+type Label struct {
+	Data string
+	text *Text
+	*Keyed
+}
+
+// NewLabel create label
+func NewLabel(p *Point, name, data string) *Label {
+	text := NewText(ZeroPoint, data)
+	return &Label{data, text, NewKeyed(p, name, text)}
+}
+
+// SetData set data
+func (l *Label) SetData(data string) {
+	l.Data = data
+	l.text.Data = data
+}
