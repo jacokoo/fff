@@ -68,6 +68,9 @@ const (
 	// TaskChangedEvent Data: TaskManager
 	TaskChangedEvent
 
+	// ShowHelpEvent Data: bool
+	ShowHelpEvent
+
 	changeCurrent
 )
 
@@ -297,6 +300,15 @@ func init() {
 			}
 			ui.tasks.Data = m
 			ui.tasks.MoveTo(ui.helpMark.Start.Left())
+		},
+
+		ShowHelpEvent: func(data interface{}) {
+			termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
+			if data.(bool) {
+				ui.help.Draw()
+			} else {
+				redraw()
+			}
 		},
 	} {
 		handlers[k] = v

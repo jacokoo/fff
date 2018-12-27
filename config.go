@@ -35,8 +35,6 @@ binding:
     ",": ActionShift                      # Shift column
     "K": ActionMoveToFirst                # Move to first item
     "J": ActionMoveToLast                 # Move to last item
-    "ctrl-n": ActionMoveDown              # Move down
-    "ctrl-p": ActionMoveUp                # Move up
     "b":                                  # Prefix, Bookmark manage
       "b": ActionToggleBookmark           ; Toggle show bookmark
       "n": ActionAddBookmark              ; Bookmark current dir
@@ -72,6 +70,7 @@ binding:
     "!": ActionShell                      # Run shell
     "e": ActionEdit                       # Run editor
     "v": ActionView                       # Run pager
+    "?": ActionShowHelp                   # Show help
 
   # bindings for jump mode
   jump:
@@ -99,7 +98,6 @@ color:
 editor: vi
 shell: sh
 pager: less
-
 `)
 
 var colorMap = map[string]termbox.Attribute{

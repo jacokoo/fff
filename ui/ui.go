@@ -40,6 +40,7 @@ type UI struct {
 	StatusInput   *StatusBackup
 
 	jumpItems []*Text
+	help      *List
 }
 
 func (ui *UI) isShowBookmark() bool {
@@ -114,6 +115,8 @@ func createUI(wo *model.Workspace) {
 	ui.StatusInput = ui.Status.Backup()
 
 	setFileInfo(wo.CurrentGroup().Current())
+
+	ui.help = NewHelp(h)
 }
 
 // EachFileList walk through all file list
@@ -148,8 +151,7 @@ func Start(wo *model.Workspace) *UI {
 	return ui
 }
 
-// Redraw ui
-func Redraw() {
+func redraw() {
 	ui.Tab.Draw()
 	ui.Path.Draw()
 	ui.Clip.Draw()
@@ -157,6 +159,11 @@ func Redraw() {
 	ui.tasks.Draw()
 	ui.Column.Draw()
 	ui.StatusMessage.Restore().Set(0, "")
+}
+
+// Redraw ui
+func Redraw() {
+	redraw()
 	termbox.Flush()
 	go startEventLoop()
 }

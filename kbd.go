@@ -19,6 +19,7 @@ const (
 	ModeNormal Mode = iota
 	ModeJump
 	ModeInput
+	ModeHelp
 	ModeDisabled
 )
 
@@ -161,6 +162,7 @@ var (
 		"ActionPaste":              limit(ModeNormal, func() { ac.copyFile() }),
 		"ActionMoveFile":           limit(ModeNormal, func() { ac.moveFile() }),
 		"ActionClearClip":          limit(ModeNormal, func() { ac.clearClip() }),
+		"ActionShowHelp":           limit(ModeNormal, func() { ac.showHelp() }),
 
 		"ActionDeleteFile": limit(ModeNormal, func() {
 			s := ac.deletePrompt()
@@ -344,6 +346,9 @@ func handleKeyEvent() {
 				kbdHandleJump(ev)
 			case ModeNormal:
 				kbdHandleNormal(ev)
+			case ModeHelp:
+				ac.closeHelp()
+				restoreKbds()
 			}
 		case <-kbdQuit:
 			return

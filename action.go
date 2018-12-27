@@ -421,3 +421,13 @@ func (w *action) moveFile() {
 		ui.ClipChangedEvent.With(nil),
 	)
 }
+
+func (w *action) showHelp() {
+	mode = ModeHelp
+	ui.ShowHelpEvent.Send(true)
+}
+
+func (w *action) closeHelp() {
+	mode = ModeNormal
+	ui.ShowHelpEvent.Send(false)
+}
