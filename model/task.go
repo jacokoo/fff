@@ -1,13 +1,75 @@
 package model
 
+var (
+	_ = Progresser(new(DefaultProgresser))
+	_ = Task(new(DefaultTask))
+)
+
+// Progresser a progress notifier
+type Progresser interface {
+	Count() int
+	Current() int
+	Progress(int)
+	Attach(chan<- int)
+	Detach(chan<- int)
+	End()
+}
+
+// DefaultProgresser a progress notifier
+type DefaultProgresser struct {
+	count     int
+	progress  int
+	listeners []chan<- int
+}
+
+// Count progress count
+func (dp *DefaultProgresser) Count() int {
+	return dp.count
+}
+
+// Current current progress
+func (dp *DefaultProgresser) Current() int {
+	return dp.progress
+}
+
+// Progress set the progress
+func (dp *DefaultProgresser) Progress(c int) {
+	dp.progress = c
+	for _, v := range dp.listeners {
+		v <- c
+	}
+}
+
+// Attach attach notifier
+func (dp *DefaultProgresser) Attach(listener chan<- int) {
+	dp.listeners = append(dp.listeners, listener)
+}
+
+// Detach attach notifier
+func (dp *DefaultProgresser) Detach(listener chan<- int) {
+	ls := make([]chan<- int, 0)
+	for _, v := range dp.listeners {
+		if v != listener {
+			continue
+		}
+		ls = append(ls, v)
+	}
+	dp.listeners = ls
+}
+
+// End close all listeners
+func (dp *DefaultProgresser) End() {
+	for _, v := range dp.listeners {
+		close(v)
+	}
+	dp.listeners = nil
+}
+
 // Task a task
 type Task interface {
 	Name() string
-	Count() int
-	Progress() int
 	Start(<-chan bool, chan<- error)
-	Attach(chan<- int)
-	Detach(chan<- int)
+	Progresser
 }
 
 // BatchTask mutiple tasks
@@ -18,15 +80,14 @@ type BatchTask interface {
 
 // DefaultTask default task
 type DefaultTask struct {
-	name      string
-	progress  int
-	listeners []chan<- int
-	action    func(chan<- int, <-chan bool, chan<- error)
+	name   string
+	action func(chan<- int, <-chan bool, chan<- error)
+	*DefaultProgresser
 }
 
 // NewTask create task
 func NewTask(name string, action func(chan<- int, <-chan bool, chan<- error)) Task {
-	return &DefaultTask{name, 0, nil, action}
+	return &DefaultTask{name, action, &DefaultProgresser{100, 0, nil}}
 }
 
 // Name return task name
@@ -34,26 +95,9 @@ func (dt *DefaultTask) Name() string {
 	return dt.name
 }
 
-// Count default to 100
-func (dt *DefaultTask) Count() int {
-	return 100
-}
-
-// Progress the progress
-func (dt *DefaultTask) Progress() int {
-	return dt.progress
-}
-
-func (dt *DefaultTask) close() {
-	for _, v := range dt.listeners {
-		close(v)
-	}
-	dt.listeners = nil
-}
-
 // Start start the task
 func (dt *DefaultTask) Start(quit <-chan bool, err chan<- error) {
-	defer dt.close()
+	defer dt.End()
 
 	prog := make(chan int)
 	qt := make(chan bool)
@@ -65,10 +109,7 @@ func (dt *DefaultTask) Start(quit <-chan bool, err chan<- error) {
 			if !ok {
 				return
 			}
-			dt.progress = p
-			for _, v := range dt.listeners {
-				v <- p
-			}
+			dt.Progress(p)
 		case <-quit:
 			qt <- true
 			return
@@ -76,43 +117,15 @@ func (dt *DefaultTask) Start(quit <-chan bool, err chan<- error) {
 	}
 }
 
-// Attach attach notifier
-func (dt *DefaultTask) Attach(listener chan<- int) {
-	dt.listeners = append(dt.listeners, listener)
-}
-
-// Detach attach notifier
-func (dt *DefaultTask) Detach(listener chan<- int) {
-	ls := make([]chan<- int, 0)
-	for _, v := range dt.listeners {
-		if v != listener {
-			continue
-		}
-		ls = append(ls, v)
-	}
-	dt.listeners = ls
-}
-
 // DefaultBatchTask default batch task
 type DefaultBatchTask struct {
-	count int
 	tasks []Task
 	*DefaultTask
 }
 
 // NewBatchTask create batch task
 func NewBatchTask(name string, tasks []Task) BatchTask {
-	return &DefaultBatchTask{len(tasks), tasks, &DefaultTask{name, 0, nil, nil}}
-}
-
-// Count the count of tasks
-func (bt *DefaultBatchTask) Count() int {
-	return bt.count
-}
-
-// Progress the index of current task
-func (bt *DefaultBatchTask) Progress() int {
-	return bt.progress
+	return &DefaultBatchTask{tasks, &DefaultTask{name, nil, &DefaultProgresser{len(tasks), 0, nil}}}
 }
 
 // CurrentTask the current task
@@ -123,7 +136,7 @@ func (bt *DefaultBatchTask) CurrentTask() Task {
 // Start task one by one
 func (bt *DefaultBatchTask) Start(quit <-chan bool, err chan<- error) {
 	defer close(err)
-	defer bt.close()
+	defer bt.End()
 
 	for i, t := range bt.tasks {
 		qt := make(chan bool)
@@ -140,9 +153,7 @@ func (bt *DefaultBatchTask) Start(quit <-chan bool, err chan<- error) {
 				if !ok {
 					break progress
 				}
-				for _, v := range bt.listeners {
-					v <- i
-				}
+				bt.Progress(i)
 			case e, ok := <-err1:
 				if !ok {
 					break progress

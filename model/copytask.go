@@ -33,8 +33,8 @@ func getCopyItems(ci FileItem, target string) ([]string, []string) {
 	return op, np
 }
 
-// Task create copy task
-func (cs CopySource) Task(op Operator, target string) (Task, bool) {
+// CopyTask create copy task
+func (cs CopySource) CopyTask(op Operator, target string) (Task, bool) {
 	ops, nps := make([]string, 0), make([]string, 0)
 	for _, v := range cs {
 		os, ns := getCopyItems(v, target)

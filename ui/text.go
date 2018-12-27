@@ -107,7 +107,11 @@ func NewRightText(p *Point, data string) *RightText {
 // Draw it
 func (rt *RightText) Draw() *Point {
 	si := len(rt.Data)
-	rt.Start.X = rt.End.X - si
+	delta := 0
+	if rt.Start.X != rt.End.X {
+		delta = 1
+	}
+	rt.Start.X = rt.End.X - si + delta
 	return rt.Text.Draw()
 }
 

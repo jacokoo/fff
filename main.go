@@ -73,7 +73,7 @@ func start(redraw bool) {
 			}
 			kbd <- ev
 		case termbox.EventResize:
-			termbox.Flush()
+			gui = ui.Recreate(wo)
 		}
 	}
 }
@@ -94,11 +94,11 @@ func main() {
 			command.Stderr = os.Stderr
 			command.Stdout = os.Stdout
 			err := command.Run()
-			if err != nil {
-				// message = err.Error()
-			}
 			command = nil
 			go start(true)
+			if err != nil {
+				ui.MessageEvent.Send("Failed to execute command: " + err.Error())
+			}
 		}
 	}
 }

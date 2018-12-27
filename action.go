@@ -367,7 +367,7 @@ func (w *action) copyFile() {
 	}
 
 	g := wo.CurrentGroup()
-	task, ok := clip.Task(g, g.Current().Path())
+	task, ok := clip.CopyTask(g, g.Current().Path())
 	clip = nil
 	if !ok {
 		ui.MessageEvent.Send("No file to copy")

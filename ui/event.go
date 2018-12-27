@@ -293,7 +293,7 @@ func init() {
 			m := ""
 
 			for _, v := range tm.Tasks {
-				m = fmt.Sprintf("%s[%s %d/%d]", m, v.Name(), v.Progress()+1, v.Count())
+				m = fmt.Sprintf("%s[%s %d/%d]", m, v.Name(), v.Current()+1, v.Count())
 			}
 			ui.tasks.Data = m
 			ui.tasks.MoveTo(ui.helpMark.Start.Left())

@@ -160,3 +160,11 @@ func Redraw() {
 	termbox.Flush()
 	go startEventLoop()
 }
+
+// Recreate UI after resize
+func Recreate(wo *model.Workspace) *UI {
+	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
+	createUI(wo)
+	termbox.Flush()
+	return ui
+}
