@@ -109,77 +109,85 @@ var (
 		return mp
 	}()
 
+	limit = func(m Mode, fn func()) func() {
+		return func() {
+			if m == mode {
+				fn()
+			}
+		}
+	}
+
 	actions = map[string]func(){
 		"ActionQuit":               func() {},
-		"ActionSortByName":         func() { ac.sort(model.OrderByName) },
-		"ActionSortByMtime":        func() { ac.sort(model.OrderByMTime) },
-		"ActionSortBySize":         func() { ac.sort(model.OrderBySize) },
-		"ActionToggleHidden":       func() { ac.toggleHidden() },
-		"ActionToggleDetail":       func() { ac.toggleDetails() },
-		"ActionMoveDown":           func() { ac.move(1) },
-		"ActionMoveUp":             func() { ac.move(-1) },
-		"ActionMoveToFirst":        func() { ac.moveToFirst() },
-		"ActionMoveToLast":         func() { ac.moveToLast() },
-		"ActionOpenFolderRight":    func() { ac.openRight() },
-		"ActionOpenFile":           func() { ac.openFile() },
-		"ActionCloseFolderRight":   func() { ac.closeRight() },
-		"ActionShift":              func() { ac.shift() },
-		"ActionToggleBookmark":     func() { ac.toggleBookmark() },
-		"ActionChangeGroup0":       func() { ac.changeGroup(0) },
-		"ActionChangeGroup1":       func() { ac.changeGroup(1) },
-		"ActionChangeGroup2":       func() { ac.changeGroup(2) },
-		"ActionChangeGroup3":       func() { ac.changeGroup(3) },
-		"ActionRefresh":            func() { ac.refresh() },
-		"ActionQuitJump":           func() { quitJumpMode() },
-		"ActionClearMark":          func() { ac.clearMark() },
-		"ActionToggleMark":         func() { ac.toggleMark() },
-		"ActionJumpCurrentDirOnce": func() { enterJumpMode(JumpModeCurrentDir, false) },
-		"ActionJumpCurrentDir":     func() { enterJumpMode(JumpModeCurrentDir, true) },
-		"ActionJumpBookmarkOnce":   func() { enterJumpMode(JumpModeBookmark, false) },
-		"ActionJumpBookmark":       func() { enterJumpMode(JumpModeBookmark, true) },
-		"ActionJumpAllOnce":        func() { enterJumpMode(JumpModeAll, false) },
-		"ActionJumpAll":            func() { enterJumpMode(JumpModeAll, true) },
-		"ActionStartFilter":        func() { enterInputMode(&columnInputer{wo.CurrentGroup().Current()}) },
-		"ActionClearFilter":        func() { ac.clearFilter() },
-		"ActionQuitInputMode":      func() { quitInputMode(false) },
-		"ActionAbortInputMode":     func() { quitInputMode(true) },
-		"ActionInputDelete":        func() { inputDelete() },
-		"ActionNewFile":            func() { enterInputMode(newFileInputer) },
-		"ActionNewDir":             func() { enterInputMode(newDirInputer) },
-		"ActionRename":             func() { enterInputMode(renameInputer) },
-		"ActionAddBookmark":        func() { enterInputMode(addBookmarkInputer) },
-		"ActionDeleteBookmark":     func() { enterJumpMode(JumpModeDeleteBookmark, false) },
-		"ActionAppendClip":         func() { ac.clipFile() },
-		"ActionPaste":              func() { ac.copyFile() },
-		"ActionMoveFile":           func() { ac.moveFile() },
-		"ActionClearClip":          func() { ac.clearClip() },
+		"ActionSortByName":         limit(ModeNormal, func() { ac.sort(model.OrderByName) }),
+		"ActionSortByMtime":        limit(ModeNormal, func() { ac.sort(model.OrderByMTime) }),
+		"ActionSortBySize":         limit(ModeNormal, func() { ac.sort(model.OrderBySize) }),
+		"ActionToggleHidden":       limit(ModeNormal, func() { ac.toggleHidden() }),
+		"ActionToggleDetail":       limit(ModeNormal, func() { ac.toggleDetails() }),
+		"ActionMoveDown":           limit(ModeNormal, func() { ac.move(1) }),
+		"ActionMoveUp":             limit(ModeNormal, func() { ac.move(-1) }),
+		"ActionMoveToFirst":        limit(ModeNormal, func() { ac.moveToFirst() }),
+		"ActionMoveToLast":         limit(ModeNormal, func() { ac.moveToLast() }),
+		"ActionOpenFolderRight":    limit(ModeNormal, func() { ac.openRight() }),
+		"ActionOpenFile":           limit(ModeNormal, func() { ac.openFile() }),
+		"ActionCloseFolderRight":   limit(ModeNormal, func() { ac.closeRight() }),
+		"ActionShift":              limit(ModeNormal, func() { ac.shift() }),
+		"ActionToggleBookmark":     limit(ModeNormal, func() { ac.toggleBookmark() }),
+		"ActionChangeGroup0":       limit(ModeNormal, func() { ac.changeGroup(0) }),
+		"ActionChangeGroup1":       limit(ModeNormal, func() { ac.changeGroup(1) }),
+		"ActionChangeGroup2":       limit(ModeNormal, func() { ac.changeGroup(2) }),
+		"ActionChangeGroup3":       limit(ModeNormal, func() { ac.changeGroup(3) }),
+		"ActionRefresh":            limit(ModeJump, func() { ac.refresh() }),
+		"ActionQuitJump":           limit(ModeNormal, func() { quitJumpMode() }),
+		"ActionClearMark":          limit(ModeNormal, func() { ac.clearMark() }),
+		"ActionToggleMark":         limit(ModeNormal, func() { ac.toggleMark() }),
+		"ActionJumpCurrentDirOnce": limit(ModeNormal, func() { enterJumpMode(JumpModeCurrentDir, false) }),
+		"ActionJumpCurrentDir":     limit(ModeNormal, func() { enterJumpMode(JumpModeCurrentDir, true) }),
+		"ActionJumpBookmarkOnce":   limit(ModeNormal, func() { enterJumpMode(JumpModeBookmark, false) }),
+		"ActionJumpBookmark":       limit(ModeNormal, func() { enterJumpMode(JumpModeBookmark, true) }),
+		"ActionJumpAllOnce":        limit(ModeNormal, func() { enterJumpMode(JumpModeAll, false) }),
+		"ActionJumpAll":            limit(ModeNormal, func() { enterJumpMode(JumpModeAll, true) }),
+		"ActionStartFilter":        limit(ModeNormal, func() { enterInputMode(&columnInputer{wo.CurrentGroup().Current()}) }),
+		"ActionClearFilter":        limit(ModeNormal, func() { ac.clearFilter() }),
+		"ActionQuitInputMode":      limit(ModeInput, func() { quitInputMode(false) }),
+		"ActionAbortInputMode":     limit(ModeInput, func() { quitInputMode(true) }),
+		"ActionInputDelete":        limit(ModeInput, func() { inputDelete() }),
+		"ActionNewFile":            limit(ModeNormal, func() { enterInputMode(newFileInputer) }),
+		"ActionNewDir":             limit(ModeNormal, func() { enterInputMode(newDirInputer) }),
+		"ActionRename":             limit(ModeNormal, func() { enterInputMode(renameInputer) }),
+		"ActionAddBookmark":        limit(ModeNormal, func() { enterInputMode(addBookmarkInputer) }),
+		"ActionDeleteBookmark":     limit(ModeNormal, func() { enterJumpMode(JumpModeDeleteBookmark, false) }),
+		"ActionAppendClip":         limit(ModeNormal, func() { ac.clipFile() }),
+		"ActionPaste":              limit(ModeNormal, func() { ac.copyFile() }),
+		"ActionMoveFile":           limit(ModeNormal, func() { ac.moveFile() }),
+		"ActionClearClip":          limit(ModeNormal, func() { ac.clearClip() }),
 
-		"ActionDeleteFile": func() {
+		"ActionDeleteFile": limit(ModeNormal, func() {
 			s := ac.deletePrompt()
 			if s == "" {
 				return
 			}
 			deleteFileInputer.title = s
 			enterInputMode(deleteFileInputer)
-		},
+		}),
 
-		"ActionEdit": func() {
+		"ActionEdit": limit(ModeNormal, func() {
 			file, err := wo.CurrentGroup().Current().CurrentFile()
 			if err != nil || file.IsDir() {
 				return
 			}
 			command = cfg.cmd(fmt.Sprintf("%s %s", cfg.editor, file.Path()))
-		},
-		"ActionView": func() {
+		}),
+		"ActionView": limit(ModeNormal, func() {
 			file, err := wo.CurrentGroup().Current().CurrentFile()
 			if err != nil || file.IsDir() {
 				return
 			}
 			command = cfg.cmd(fmt.Sprintf("%s %s", cfg.pager, file.Path()))
-		},
-		"ActionShell": func() {
+		}),
+		"ActionShell": limit(ModeNormal, func() {
 			command = exec.Command(cfg.shell)
-		},
+		}),
 	}
 
 	mode    = ModeNormal
