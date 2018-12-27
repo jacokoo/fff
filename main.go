@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -20,13 +21,13 @@ var (
 	home      = os.Getenv("HOME")
 	configDir = filepath.Join(home, ".fff")
 	wd, _     = os.Getwd()
-	wo        = model.NewWorkspace(maxGroups, wd, configDir)
 	quit      = make(chan int)
 	cfg       = initConfig()
-	command   *exec.Cmd
 	ac        = new(action)
 	tm        = model.NewTaskManager()
 
+	wo         *model.Workspace
+	command    *exec.Cmd
 	maxColumns int
 	gui        *ui.UI
 	clip       model.CopySource
@@ -78,7 +79,53 @@ func start(redraw bool) {
 	}
 }
 
+func wdFromArgs() {
+	if len(os.Args) < 2 {
+		return
+	}
+
+	s := os.Args[1]
+	if !filepath.IsAbs(s) {
+		s = filepath.Join(wd, s)
+	}
+
+	fi, err := os.Stat(s)
+	if err != nil {
+		return
+	}
+
+	if !fi.IsDir() {
+		s = filepath.Dir(s)
+	}
+
+	wd = s
+}
+
+func checkWd() {
+	wdFromArgs()
+
+	if wd == "" {
+		wd = "/"
+	}
+
+	fi, err := os.Stat(wd)
+	if err != nil || !fi.IsDir() {
+		panic(err)
+	}
+}
+
 func main() {
+	if len(os.Args) > 1 {
+		h := os.Args[1]
+		if h == "-h" || h == "--help" {
+			fmt.Println(usageString)
+			return
+		}
+	}
+
+	checkWd()
+	wo = model.NewWorkspace(maxGroups, wd, configDir)
+
 	go start(false)
 	for {
 		switch ev := <-quit; ev {
@@ -102,3 +149,7 @@ func main() {
 		}
 	}
 }
+
+const usageString = `Usage: fff [PATH]
+
+Website: https://github.com/jacokoo/fff`
