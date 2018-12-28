@@ -8,7 +8,7 @@ const helpText = `Website: https://github.com/jacokoo/fff
 
 Navigation:
       ↓, j    select next file                  ↑, k    select previous file
-         J    select the first file                K    select the last file
+         J    select the last file                 K    select the first file
 	  →, l    open selected dir                 ←, h    close current dir
 		 f    filter files in current dir          F    clear filter
 		ss    sort current dir by size            sm    sort current dir by modify time
@@ -23,7 +23,7 @@ Navigation:
 	   esc    abort input (during input), cancel jump (during jump)
 
 File:
-         m    toggle mark file                     u    clear marks
+         m    toggle mark file                     u    toggle mark all items
 		 +    create new dir                       N    create new file
 		 R    rename selected file                 D    delete selected/marked items
 		 U    clear clips                          C    append selected/marked items to clip

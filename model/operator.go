@@ -1,11 +1,13 @@
 package model
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 )
 
 // Operator file operators
@@ -146,7 +148,17 @@ func (o *LocalOperator) CopyFile(path, newPath string, progress chan<- int, resu
 
 // Open file
 func (o *LocalOperator) Open(path string) error {
-	cmd := exec.Command("open", path) // macos only
+	open := ""
+	switch runtime.GOOS {
+	case "darwin":
+		open = "open"
+	case "linux":
+		open = "xdg-open"
+	default:
+		return fmt.Errorf("not supported")
+	}
+
+	cmd := exec.Command(open, path) // macos only
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin

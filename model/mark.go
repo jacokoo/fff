@@ -2,6 +2,8 @@ package model
 
 // Marker content can be marked
 type Marker interface {
+	Mark(idx int)
+	Unmark(idx int)
 	ToggleMark()
 	Marked() []FileItem
 	IsMarked(idx int) bool
@@ -10,7 +12,7 @@ type Marker interface {
 
 // BaseMarker base marker
 type BaseMarker struct {
-	markes []int
+	marks []int
 	*BaseSelector
 }
 
@@ -20,37 +22,21 @@ func (bm *BaseMarker) ToggleMark() {
 		return
 	}
 
-	ii := -1
-	for idx, i := range bm.markes {
-		if i == bm.current {
-			ii = idx
-			break
-		}
+	if bm.IsMarked(bm.current) {
+		bm.Unmark(bm.current)
+	} else {
+		bm.Mark(bm.current)
 	}
-	if ii == -1 {
-		bm.markes = append(bm.markes, bm.current)
-		return
-	}
-
-	bm.markes = append(bm.markes[:ii], bm.markes[ii+1:]...)
 }
 
 // Marked get marked files
 func (bm *BaseMarker) Marked() []FileItem {
-	if len(bm.files) == 0 {
+	if len(bm.files) == 0 || len(bm.marks) == 0 {
 		return nil
 	}
 
-	if len(bm.markes) == 0 {
-		file, err := bm.CurrentFile()
-		if err != nil {
-			return nil
-		}
-		return []FileItem{file}
-	}
-
-	re := make([]FileItem, len(bm.markes))
-	for i, v := range bm.markes {
+	re := make([]FileItem, len(bm.marks))
+	for i, v := range bm.marks {
 		re[i] = bm.files[v]
 	}
 	return re
@@ -58,7 +44,7 @@ func (bm *BaseMarker) Marked() []FileItem {
 
 // IsMarked determine if the idx is selected
 func (bm *BaseMarker) IsMarked(idx int) bool {
-	for _, i := range bm.markes {
+	for _, i := range bm.marks {
 		if i == idx {
 			return true
 		}
@@ -66,7 +52,28 @@ func (bm *BaseMarker) IsMarked(idx int) bool {
 	return false
 }
 
+// Unmark index
+func (bm *BaseMarker) Unmark(index int) {
+	ii := -1
+	for idx, i := range bm.marks {
+		if i == index {
+			ii = idx
+			break
+		}
+	}
+	if ii != -1 {
+		bm.marks = append(bm.marks[:ii], bm.marks[ii+1:]...)
+	}
+}
+
+// Mark add mark
+func (bm *BaseMarker) Mark(idx int) {
+	if !bm.IsMarked(idx) {
+		bm.marks = append(bm.marks, idx)
+	}
+}
+
 // ClearMark clear all markes
 func (bm *BaseMarker) ClearMark() {
-	bm.markes = nil
+	bm.marks = nil
 }

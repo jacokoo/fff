@@ -5,6 +5,8 @@ type Column interface {
 	Path() string
 	Update()
 	Refresh(string, []FileItem)
+	MarkedOrSelected() []FileItem
+	ToggleMarkAll()
 
 	FileList
 	Filterer
@@ -26,6 +28,31 @@ func (bc *BaseColumn) Update() {
 	bc.SelectFirst()
 	bc.ClearMark()
 	bc.Sort(bc.Order())
+}
+
+// MarkedOrSelected if have marks return marked else return selected
+func (bc *BaseColumn) MarkedOrSelected() []FileItem {
+	mks := bc.Marked()
+	if len(mks) == 0 {
+		file, err := bc.CurrentFile()
+		if err == nil {
+			mks = append(mks, file)
+		}
+	}
+	return mks
+}
+
+// ToggleMarkAll if have marked files clear them, else mark all
+func (bc *BaseColumn) ToggleMarkAll() {
+	mks := bc.Marked()
+	if len(mks) == 0 {
+		for i := range bc.Files() {
+			bc.Mark(i)
+		}
+		return
+	}
+
+	bc.ClearMark()
 }
 
 // LocalColumn use local file system

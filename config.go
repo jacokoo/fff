@@ -17,7 +17,7 @@ var data = []byte(`
 binding:
   # bindings for all mode
   all:
-    "ctrl-q": ActionQuit					        # quit fff
+    "ctrl-q": ActionQuit                  # quit fff
   
   # bindings for normal mode
   normal:
@@ -51,7 +51,7 @@ binding:
     "right": ActionOpenFolderRight        # Open folder on right
     "left": ActionCloseFolderRight        # Go to parent folder
     "m": ActionToggleMark                 # Toggle mark
-    "u": ActionClearMark                  # Clear all marks
+    "u": ActionToggleMarkAll              # Clear all marks
     "i": ActionJumpCurrentDirOnce         # Jump over current dir and stop after one jump
     "I": ActionJumpCurrentDir             # Jump over current dir
     "w": ActionJumpAllOnce                # Jump over items that can jump and stop after one jump

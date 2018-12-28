@@ -150,9 +150,9 @@ func (w *action) toggleMark() {
 	ui.ColumnContentChangeEvent.Send(co)
 }
 
-func (w *action) clearMark() {
+func (w *action) toggleMarkAll() {
 	co := wo.CurrentGroup().Current()
-	co.ClearMark()
+	co.ToggleMarkAll()
 	ui.ColumnContentChangeEvent.Send(co)
 }
 
@@ -230,7 +230,7 @@ func selectString(dirs, files int, prefix bool) string {
 }
 
 func (w *action) deletePrompt() string {
-	files := wo.CurrentGroup().Current().Marked()
+	files := wo.CurrentGroup().Current().MarkedOrSelected()
 	if len(files) == 0 {
 		return ""
 	}
@@ -262,7 +262,7 @@ func (w *action) deleteFiles() {
 	}
 
 	selected, er := co.CurrentFile()
-	files := co.Marked()
+	files := co.MarkedOrSelected()
 	fc, dc := 0, 0
 	for _, v := range files {
 		if v.IsDir() {
@@ -326,7 +326,7 @@ func (w *action) openFile() {
 func (w *action) clipFile() {
 	co := wo.CurrentGroup().Current()
 	if clip == nil {
-		clip = model.CopySource(co.Marked())
+		clip = model.CopySource(co.MarkedOrSelected())
 		ui.Batch(
 			ui.MessageEvent.With("Marked/Selected files are clipped"),
 			ui.ClipChangedEvent.With(clip),
@@ -335,7 +335,7 @@ func (w *action) clipFile() {
 	}
 
 	count := 0
-	for _, v := range co.Marked() {
+	for _, v := range co.MarkedOrSelected() {
 		has := false
 		for _, vv := range clip {
 			if strings.HasPrefix(v.Path(), vv.Path()) {
