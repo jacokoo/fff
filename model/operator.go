@@ -152,7 +152,7 @@ func (o *LocalOperator) Open(path string) error {
 	switch runtime.GOOS {
 	case "darwin":
 		open = "open"
-	case "linux":
+	case "linux", "freebsd":
 		open = "xdg-open"
 	default:
 		return fmt.Errorf("not supported")

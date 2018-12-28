@@ -47,11 +47,13 @@ func NewHelp(height int) *List {
 	ns := strings.Split(strings.Replace(helpText, "\t", "    ", -1), "\n")
 	hs := make([]int, len(ns))
 	for i := range ns {
-		hs[i] = 0
-		if i == 0 || i == 2 || i == 18 || i == 26 || i == 31 {
+		switch i {
+		case 0, 2, 18, 26, 31:
 			hs[i] = 1
-		} else if i == len(ns)-1 {
+		case len(ns) - 1:
 			hs[i] = 2
+		default:
+			hs[i] = 0
 		}
 	}
 

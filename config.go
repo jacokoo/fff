@@ -18,7 +18,7 @@ binding:
   # bindings for all mode
   all:
     "ctrl-q": ActionQuit                  # quit fff
-  
+
   # bindings for normal mode
   normal:
     "s":                                  # Prefix, Sort File
@@ -142,9 +142,10 @@ func readColors(ds interface{}, cfg *config) {
 		if !ex {
 			continue
 		}
-		if k == "tab" || k == "statusbar" || k == "jump" || k == "filter" {
+		switch k {
+		case "tab", "statusbar", "jump", "filter":
 			cfg.colors[kk] = &ui.Color{FG: c, BG: termbox.ColorDefault | termbox.AttrReverse}
-		} else {
+		default:
 			cfg.colors[kk] = &ui.Color{FG: c, BG: termbox.ColorDefault}
 		}
 	}
@@ -153,6 +154,7 @@ func readColors(ds interface{}, cfg *config) {
 func createCmd(key, action string) *cmd {
 	return newCmd(key, action, nil)
 }
+
 func readChildren(ds map[interface{}]interface{}) []*cmd {
 	cds := make([]*cmd, 0, len(ds))
 	for k, v := range ds {

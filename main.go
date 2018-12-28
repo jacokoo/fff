@@ -19,7 +19,7 @@ const (
 
 var (
 	home      = os.Getenv("HOME")
-	configDir = filepath.Join(home, ".fff")
+	configDir = filepath.Join(home, ".config/fff")
 	wd, _     = os.Getwd()
 	quit      = make(chan int)
 	cfg       = initConfig()
