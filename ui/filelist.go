@@ -83,7 +83,7 @@ func truncName(str string, count int) (string, int) {
 func formatSize(size int64) string {
 	unit := "B"
 	b := float32(size)
-	base := float32(1000)
+	base := float32(1024)
 
 	if b > base {
 		unit = "K"

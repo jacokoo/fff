@@ -140,6 +140,7 @@ func init() {
 			co := ui.Column.Last()
 			co.Clear()
 			co.item.(*FileList).setData(data.(model.Column))
+			co.showLine = !data.(model.Column).IsShowDetail()
 			co.Draw()
 			ui.Column.resetIndicator()
 		},
@@ -174,6 +175,7 @@ func init() {
 
 			last := ui.Column.Last().item.(*FileList)
 			last.setData(cos[len(cos)-2])
+			ui.Column.Last().showLine = !cos[len(cos)-2].IsShowDetail()
 
 			fl := newFileList(ZeroPoint, ui.Column.Height-1)
 			fl.setData(g.Current())
