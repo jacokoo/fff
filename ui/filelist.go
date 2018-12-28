@@ -32,9 +32,6 @@ func (fl *FileList) setData(co model.Column) {
 }
 
 func (fl *FileList) setFilter(filter string) {
-	if len(filter) != 0 {
-		filter = "F: " + filter
-	}
 	fl.filter.Data = filter
 }
 
