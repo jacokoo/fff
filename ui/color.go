@@ -44,3 +44,4 @@ func colorIndicator() *Color      { return getColor("indicator") }
 func colorJump() *Color           { return getColor("jump") }
 func colorFilter() *Color         { return getColor("filter") }
 func colorStatusBarTitle() *Color { return getColor("statusbar-title") }
+func colorClip() *Color           { return getColor("clip") }

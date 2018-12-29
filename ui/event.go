@@ -71,6 +71,9 @@ const (
 	// ShowHelpEvent Data: bool
 	ShowHelpEvent
 
+	// ToggleClipDetailEvent Data: bool
+	ToggleClipDetailEvent
+
 	changeCurrent
 )
 
@@ -120,11 +123,12 @@ func init() {
 		},
 
 		changeCurrent: func(data interface{}) {
+			showed := ui.Clip.showed
 			ui.Clip.Clear()
 			ui.Path.Clear()
 			ui.Path.SetValue(data.(string))
 			p := ui.Path.Draw()
-			if ui.Clip.Data != "" {
+			if showed {
 				ui.Clip.MoveTo(p.Right())
 			}
 		},
@@ -274,13 +278,28 @@ func init() {
 		},
 
 		ClipChangedEvent: func(data interface{}) {
-			if ui.Clip.Data != "" {
-				ui.Clip.Clear()
-			}
-			ui.Clip.Data = ""
+			ui.Clip.Clear()
 			if data != nil {
-				ui.Clip.Data = fmt.Sprintf("[%d clips]", len(data.(model.CopySource)))
+				cs := data.(model.CopySource)
+				items := make([]string, len(cs))
+				for i, v := range cs {
+					items[i] = v.Path()
+				}
+				ui.Clip.SetData(items)
 				ui.Clip.MoveTo(ui.Path.End.Right())
+			}
+		},
+
+		ToggleClipDetailEvent: func(data interface{}) {
+			if !ui.Clip.showed {
+				return
+			}
+
+			ui.Clip.Clear()
+			ui.Clip.showDetail = data.(bool)
+			ui.Clip.MoveTo(ui.Path.End.Right())
+			if !ui.Clip.showDetail {
+				ui.Column.Draw()
 			}
 		},
 

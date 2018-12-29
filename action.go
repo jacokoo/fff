@@ -325,11 +325,11 @@ func (w *action) openFile() {
 
 func (w *action) clipFile() {
 	co := wo.CurrentGroup().Current()
-	if clip == nil {
-		clip = model.CopySource(co.MarkedOrSelected())
+	if wo.Clip == nil {
+		wo.Clip = model.CopySource(co.MarkedOrSelected())
 		ui.Batch(
 			ui.MessageEvent.With("Marked/Selected files are clipped"),
-			ui.ClipChangedEvent.With(clip),
+			ui.ClipChangedEvent.With(wo.Clip),
 		)
 		return
 	}
@@ -337,7 +337,7 @@ func (w *action) clipFile() {
 	count := 0
 	for _, v := range co.MarkedOrSelected() {
 		has := false
-		for _, vv := range clip {
+		for _, vv := range wo.Clip {
 			if strings.HasPrefix(v.Path(), vv.Path()) {
 				has = true
 				break
@@ -345,30 +345,39 @@ func (w *action) clipFile() {
 		}
 		if !has {
 			count++
-			clip = append(clip, v)
+			wo.Clip = append(wo.Clip, v)
 		}
 	}
 
 	ui.Batch(
 		ui.MessageEvent.With(fmt.Sprintf("%d items appended to clip", count)),
-		ui.ClipChangedEvent.With(clip),
+		ui.ClipChangedEvent.With(wo.Clip),
 	)
 }
 
 func (w *action) clearClip() {
-	clip = nil
+	wo.Clip = nil
 	ui.ClipChangedEvent.Send(nil)
 }
 
+func (w *action) toggleClipDetail() {
+	if wo.Clip == nil {
+		return
+	}
+
+	wo.ToggleClipDetail()
+	ui.ToggleClipDetailEvent.Send(wo.IsShowClipDetail())
+}
+
 func (w *action) copyFile() {
-	if clip == nil {
+	if wo.Clip == nil {
 		ui.MessageEvent.Send("No clipped files")
 		return
 	}
 
 	g := wo.CurrentGroup()
-	task, ok := clip.CopyTask(g, g.Current().Path())
-	clip = nil
+	task, ok := wo.Clip.CopyTask(g, g.Current().Path())
+	wo.Clip = nil
 	if !ok {
 		ui.MessageEvent.Send("No file to copy")
 		return
@@ -395,24 +404,24 @@ func (w *action) copyFile() {
 }
 
 func (w *action) moveFile() {
-	if clip == nil {
+	if wo.Clip == nil {
 		ui.MessageEvent.Send("No clipped files")
 		return
 	}
 
 	g := wo.CurrentGroup()
-	err := clip.MoveTo(g, g.Current().Path())
+	err := wo.Clip.MoveTo(g, g.Current().Path())
 	if err != nil {
 		ui.MessageEvent.Send(err.Error())
 		return
 	}
 
-	for _, v := range clip {
+	for _, v := range wo.Clip {
 		if v.IsDir() {
 			g.DeleteDir(v.Path())
 		}
 	}
-	clip = nil
+	wo.Clip = nil
 
 	wo.CurrentGroup().Refresh()
 	ui.Batch(

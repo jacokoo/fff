@@ -28,7 +28,7 @@ var (
 type UI struct {
 	Tab      *Tab
 	Path     *Path
-	Clip     *Text
+	Clip     *Clip
 	Column   *Column
 	Bookmark *Bookmark
 	bkColumn *ColumnItem
@@ -82,6 +82,7 @@ func initFiles(showBookmark bool, g model.Group) {
 }
 
 func createUI(wo *model.Workspace) {
+	w, h := termbox.Size()
 	p := ZeroPoint.Down()
 
 	names := make([]string, len(wo.Groups))
@@ -93,10 +94,9 @@ func createUI(wo *model.Workspace) {
 
 	ui.Path = NewPath(p, "", wo.CurrentGroup().Path())
 	p = ui.Path.Draw()
-	ui.Clip = NewText(p.Right(), "")
+	ui.Clip = NewClip(p.RightN(2), h)
 
 	p = ZeroPoint.DownN(3)
-	w, h := termbox.Size()
 	ui.Column = NewColumn(p, w, h-4)
 	ui.Bookmark = NewBookmark(ZeroPoint, h-4, wo.Bookmark.Names)
 	initFiles(wo.IsShowBookmark(), wo.CurrentGroup())

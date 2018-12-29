@@ -65,7 +65,7 @@ func (b *Bookmark) SetData(names []string) {
 		}
 	}
 	b.Width = w + 4
-	b.line.ChangeWidth(b.Width)
+	b.line.ChangeWidth(b.Width + 1)
 	ns, hs := bookmarkNames(names)
 	b.List.SetData(ns, hs, -1)
 }

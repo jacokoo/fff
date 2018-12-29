@@ -163,6 +163,7 @@ var (
 		"ActionMoveFile":           limit(ModeNormal, func() { ac.moveFile() }),
 		"ActionClearClip":          limit(ModeNormal, func() { ac.clearClip() }),
 		"ActionShowHelp":           limit(ModeNormal, func() { ac.showHelp() }),
+		"ActionToggleClipDetail":   limit(ModeNormal, func() { ac.toggleClipDetail() }),
 
 		"ActionDeleteFile": limit(ModeNormal, func() {
 			s := ac.deletePrompt()

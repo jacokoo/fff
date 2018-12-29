@@ -30,7 +30,6 @@ var (
 	command    *exec.Cmd
 	maxColumns int
 	gui        *ui.UI
-	clip       model.CopySource
 )
 
 func init() {

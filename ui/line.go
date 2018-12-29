@@ -8,17 +8,23 @@ import (
 
 // HLine horizontal line
 type HLine struct {
+	token rune
 	*Text
 }
 
 // NewHLine create HLine
 func NewHLine(p *Point, width int) *HLine {
-	return &HLine{NewText(p, strings.Repeat("─", width))}
+	return &HLine{chh, NewText(p, strings.Repeat(string(chh), width))}
+}
+
+// NewHDLine create HLine
+func NewHDLine(p *Point, width int) *HLine {
+	return &HLine{chdh, NewText(p, strings.Repeat(string(chdh), width))}
 }
 
 // ChangeWidth change the line width
 func (h *HLine) ChangeWidth(width int) {
-	h.Text.Data = strings.Repeat("─", width)
+	h.Text.Data = strings.Repeat(string(h.token), width)
 }
 
 // VLine vertical line
@@ -30,12 +36,12 @@ type VLine struct {
 
 // NewVLine create vline
 func NewVLine(p *Point, height int) *VLine {
-	return &VLine{'│', height, NewDrawable(p)}
+	return &VLine{chv, height, NewDrawable(p)}
 }
 
 // NewVDLine create double vertical line
 func NewVDLine(p *Point, height int) *VLine {
-	return &VLine{'║', height, NewDrawable(p)}
+	return &VLine{chdv, height, NewDrawable(p)}
 }
 
 // Draw it

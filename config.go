@@ -18,7 +18,7 @@ binding:
   # bindings for all mode
   all:
     "ctrl-q": ActionQuit                  # quit fff
-
+  
   # bindings for normal mode
   normal:
     "s":                                  # Prefix, Sort File
@@ -71,6 +71,7 @@ binding:
     "e": ActionEdit                       # Run editor
     "v": ActionView                       # Run pager
     "?": ActionShowHelp                   # Show help
+    "t": ActionToggleClipDetail           # Toggle show clip detail
 
   # bindings for jump mode
   jump:
@@ -94,6 +95,7 @@ color:
   jump: yellow
   filter: magenta
   indicator: green
+  clip: cyan
 
 editor: vi
 shell: sh

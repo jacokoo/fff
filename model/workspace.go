@@ -6,10 +6,12 @@ import (
 
 // Workspace hold all state
 type Workspace struct {
-	Groups       []Group
-	Current      int
-	Bookmark     *Bookmark
-	showBookmark bool
+	Groups         []Group
+	Clip           CopySource
+	Current        int
+	Bookmark       *Bookmark
+	showBookmark   bool
+	showClipDetail bool
 }
 
 // NewWorkspace create workspace
@@ -21,7 +23,7 @@ func NewWorkspace(maxGroups int, wd, configDir string) *Workspace {
 	}
 	gs[0] = g
 
-	return &Workspace{gs, 0, NewBookmark(filepath.Join(configDir, "bookmarks")), true}
+	return &Workspace{gs, nil, 0, NewBookmark(filepath.Join(configDir, "bookmarks")), true, false}
 }
 
 // CurrentGroup get the current group in use
@@ -50,4 +52,14 @@ func (w *Workspace) IsShowBookmark() bool {
 // ToggleBookmark toggle bookmark
 func (w *Workspace) ToggleBookmark() {
 	w.showBookmark = !w.showBookmark
+}
+
+// IsShowClipDetail if to show clip detail
+func (w *Workspace) IsShowClipDetail() bool {
+	return w.showClipDetail
+}
+
+// ToggleClipDetail toggle clip detail
+func (w *Workspace) ToggleClipDetail() {
+	w.showClipDetail = !w.showClipDetail
 }

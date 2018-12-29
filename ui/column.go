@@ -3,9 +3,9 @@ package ui
 var (
 	singleCorner    = "┬"
 	doubleCorner    = "╥"
-	cornerReset     = "─"
+	cornerReset     = string(chh)
 	indicatorString = " ▼ "
-	indicatorReset  = "───"
+	indicatorReset  = string([]rune{chh, chh, chh})
 )
 
 // ColumnItem a item
