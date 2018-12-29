@@ -6,118 +6,117 @@ import (
 	"github.com/jacokoo/fff/ui"
 )
 
-// the root is empty
-// the first level is head key, won't change
-// flat the second level
-type keyTree struct {
-	key      rune
-	parent   *keyTree
-	children []*keyTree
-	item     *ui.JumpItem
-}
-
-func have1st(kt *keyTree, key rune) bool {
-	for _, v := range kt.children {
-		if v.key == key {
-			return true
-		}
+func keyIndex(key rune) uint {
+	if key >= 'a' && key <= 'z' {
+		return uint(int(key) - int('a'))
 	}
-	return false
+
+	if key >= 'A' && key <= 'Z' {
+		return uint(26 + int(key) - int('A'))
+	}
+
+	return 52
 }
 
-func have2nd(kt *keyTree, key rune) bool {
-	for _, v := range kt.children {
-		for _, vv := range v.children {
-			if vv.key == key {
-				return true
+func indexKey(idx uint) rune {
+	if idx >= 0 && idx <= 25 {
+		return rune('a' + idx)
+	}
+
+	if idx > 25 && idx <= 51 {
+		return rune('A' + idx - 26)
+	}
+
+	return ' '
+}
+
+func keyThem(items []*ui.JumpItem) {
+	used := make(map[rune]uint64)
+	its := make(map[rune][]*ui.JumpItem)
+	for _, v := range items {
+		k := unicode.ToLower(v.Key[0])
+		if (k < 'a' || k > 'z') && (k < '0' || k > '9') {
+			k = '-'
+		}
+		v.Key[0] = k
+
+		is, ok := its[k]
+		if !ok {
+			is = make([]*ui.JumpItem, 0)
+		}
+
+		idx := keyIndex(v.Key[1])
+		if idx == 52 {
+			v.Key[1] = '-'
+		} else {
+			us, ok := used[v.Key[0]]
+			if !ok {
+				us = 1 << 52
+			}
+			used[v.Key[0]] = us | 1<<idx
+		}
+
+		position := -1
+		for i, vv := range is {
+			if keyIndex(vv.Key[1]) > keyIndex(v.Key[1]) {
+				position = i
+				break
+			}
+		}
+
+		if position == -1 {
+			is = append(is, v)
+		} else {
+			is = append(is, nil)
+			copy(is[position+1:], is[position:])
+			is[position] = v
+		}
+
+		its[k] = is
+	}
+	flatIt(used, its)
+}
+
+func next(current *uint, used *uint64) rune {
+	for *current < 52 && (*used&(1<<*current)) != 0 {
+		*current++
+	}
+	*used = *used | (1 << *current)
+	return indexKey(*current)
+}
+
+func flatIt(usedKeys map[rune]uint64, items map[rune][]*ui.JumpItem) {
+	for k, v := range items {
+		var current uint
+		count, used := 0, usedKeys[k]
+		vc := len(v)
+		if vc == 1 {
+			v[0].Key = []rune{v[0].Key[0]}
+			continue
+		}
+
+		for i := 1; i < vc; i++ {
+			if v[i].Key[1] == v[i-1].Key[1] {
+				count++
+				continue
+			}
+			if count == 0 {
+				continue
+			}
+			for j := count; j > 0; j-- {
+				v[i-j].Key[1] = next(&current, &used)
+			}
+			count = 0
+		}
+		if v[vc-1].Key[1] == '-' {
+			count++
+		}
+		if count > 0 {
+			for j := count; j > 0; j-- {
+				v[vc-j].Key[1] = next(&current, &used)
 			}
 		}
 	}
-	return false
-}
-
-func findKey(kt *keyTree, have func(*keyTree, rune) bool) rune {
-	key := ' '
-	for i := 'a'; i <= 'z'; i++ {
-		if !have(kt, i) {
-			key = i
-			break
-		}
-	}
-
-	if key != ' ' {
-		return key
-	}
-
-	for i := 'A'; i <= 'Z'; i++ {
-		if !have(kt, i) {
-			key = i
-			break
-		}
-	}
-	return key
-}
-
-func flat1st(root *keyTree) {
-	for _, v := range root.children {
-		if v.key == '-' {
-			v.key = findKey(root, have1st)
-		}
-
-		for _, vv := range v.children {
-			flat3rd(vv)
-		}
-	}
-}
-
-func flat3rd(kt *keyTree) {
-	if kt.key == '-' {
-		kt.key = findKey(kt.parent, have2nd)
-	}
-	cc := len(kt.children)
-	if len(kt.parent.children) == 1 && cc == 1 {
-		kt.children[0].item.Key = []rune{kt.parent.key}
-		return
-	}
-
-	if cc == 1 {
-		kt.children[0].item.Key = []rune{kt.parent.key, kt.key}
-		return
-	}
-
-	kt.children[0].key = kt.key
-	kt.children[0].item.Key = []rune{kt.parent.key, kt.key}
-
-	for i := 1; i < cc; i++ {
-		kt.children[i].key = findKey(kt.parent, have2nd)
-		kt.children[i].item.Key = []rune{kt.parent.key, kt.children[i].key}
-	}
-}
-
-func (kt *keyTree) add(idx int, item *ui.JumpItem) {
-	if idx >= len(item.Key) {
-		kt.children = append(kt.children, &keyTree{'$', kt, nil, item})
-		return
-	}
-	k := unicode.ToLower(item.Key[idx])
-	if (k < 'a' || k > 'z') && (k < '0' || k > '9') {
-		k = '-'
-	}
-
-	var p *keyTree
-	for _, v := range kt.children {
-		if v.key == k {
-			p = v
-			break
-		}
-	}
-
-	if p == nil {
-		p = &keyTree{k, kt, nil, nil}
-		kt.children = append(kt.children, p)
-	}
-
-	p.add(idx+1, item)
 }
 
 // JumpMode describe the jump mode
@@ -137,14 +136,6 @@ var (
 	continueJump = false
 	jumpItems    []*ui.JumpItem
 )
-
-func keyThem(items []*ui.JumpItem) {
-	tree := &keyTree{' ', nil, nil, nil}
-	for _, v := range items {
-		tree.add(0, v)
-	}
-	flat1st(tree)
-}
 
 func handleJumpResult(item *ui.JumpItem) {
 	ui.GuiNeedAck = true
@@ -207,8 +198,11 @@ func handleKeys() {
 
 func collectAllDir() []*ui.JumpItem {
 	items := make([]*ui.JumpItem, 0)
+	gr := wo.CurrentGroup()
 	ui.EachFileList(func(colIdx int, list *ui.List) {
-		items = append(items, list.JumpItems(func(idx int) func() bool {
+		items = append(items, list.JumpItems(func(idx int) string {
+			return gr.Columns()[colIdx].Files()[idx].Name()
+		}, func(idx int) func() bool {
 			return func() bool {
 				return ac.jumpTo(colIdx, idx, continueJump)
 			}
@@ -222,7 +216,9 @@ func collectBookmark(forDelete bool) []*ui.JumpItem {
 		return nil
 	}
 	bk := wo.Bookmark
-	return ui.BookmarkList().JumpItems(func(idx int) func() bool {
+	return ui.BookmarkList().JumpItems(func(idx int) string {
+		return bk.Names[idx]
+	}, func(idx int) func() bool {
 		key := bk.Names[idx]
 		if forDelete && bk.IsFixed(key) {
 			return nil
@@ -246,7 +242,10 @@ func collectBookmark(forDelete bool) []*ui.JumpItem {
 }
 
 func collectCurrentDir() []*ui.JumpItem {
-	return ui.CurrentFileList().JumpItems(func(idx int) func() bool {
+	co := wo.CurrentGroup().Current()
+	return ui.CurrentFileList().JumpItems(func(idx int) string {
+		return co.Files()[idx].Name()
+	}, func(idx int) func() bool {
 		return func() bool {
 			return ac.jumpTo(len(wo.CurrentGroup().Columns())-1, idx, continueJump)
 		}

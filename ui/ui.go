@@ -74,7 +74,8 @@ func initFiles(showBookmark bool, g model.Group) {
 	for _, v := range g.Columns() {
 		fl := newFileList(ZeroPoint, ui.Column.Height-1)
 		fl.setData(v)
-		ui.Column.Add(fl)
+		co := ui.Column.Add(fl)
+		co.showLine = !v.IsShowDetail()
 	}
 
 	ui.Column.Draw()

@@ -13,11 +13,25 @@ type JumpItem struct {
 	Point  *Point
 }
 
-func onlyTwo(rs []rune) []rune {
-	if len(rs) < 3 {
-		return rs
+func headingTwoChar(name string) []rune {
+	ns := []rune(name)
+	if len(ns) == 0 {
+		return []rune("  ")
 	}
-	return rs[:2]
+
+	if ns[0] == '.' {
+		ns = ns[1:]
+	}
+
+	if len(ns) == 0 {
+		return []rune("  ")
+	}
+
+	if len(ns) == 1 {
+		return append(ns, ' ')
+	}
+
+	return ns[:2]
 }
 
 // JumpItems jump items of tab
@@ -53,13 +67,13 @@ func (p *Path) JumpItems(fn func(string) func() bool) []*JumpItem {
 		if ac == nil {
 			continue
 		}
-		re = append(re, &JumpItem{onlyTwo([]rune(v.Data)), ac, v.Start.Down()})
+		re = append(re, &JumpItem{headingTwoChar(v.Data), ac, v.Start.Down()})
 	}
 	return re
 }
 
 // JumpItems jump items of file list
-func (fl *List) JumpItems(fn func(int) func() bool) []*JumpItem {
+func (fl *List) JumpItems(namefn func(int) string, fn func(int) func() bool) []*JumpItem {
 	re := make([]*JumpItem, 0)
 	for i := fl.from; i < fl.to; i++ {
 		it := fl.items[i]
@@ -67,7 +81,8 @@ func (fl *List) JumpItems(fn func(int) func() bool) []*JumpItem {
 		if ac == nil {
 			continue
 		}
-		re = append(re, &JumpItem{onlyTwo([]rune(strings.Trim(it.Data, " "))), ac, it.Start.LeftN(0)})
+		name := namefn(i)
+		re = append(re, &JumpItem{headingTwoChar(name), ac, it.Start.LeftN(0)})
 	}
 	return re
 }
