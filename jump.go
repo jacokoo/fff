@@ -52,8 +52,8 @@ var (
 
 func init() {
 	jumpAll = &JumpMode{func() []*ui.JumpItem {
-		its := append(collectBookmark(false), collectCurrentPath()...)
-		return append(its, collectAllDir()...)
+		its := append(collectAllDir(), collectCurrentPath()...)
+		return append(its, collectBookmark(false)...)
 	}, nil}
 	cjumpAll = &JumpMode{jumpAll.collect, collectCurrentDir}
 
@@ -75,13 +75,13 @@ func collectAllDir() []*ui.JumpItem {
 	items := make([]*ui.JumpItem, 0)
 	gr := wo.CurrentGroup()
 	ui.EachFileList(func(colIdx int, list *ui.List) {
-		items = append(items, list.JumpItems(func(idx int) string {
+		items = append(list.JumpItems(func(idx int) string {
 			return gr.Columns()[colIdx].Files()[idx].Name()
 		}, func(idx int) func() bool {
 			return func() bool {
 				return ac.jumpTo(colIdx, idx, jumpMode.SupportContinuous())
 			}
-		})...)
+		}), items...)
 	})
 	return items
 }
