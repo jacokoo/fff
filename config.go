@@ -38,7 +38,8 @@ binding:
     "b":                                  # Prefix, Bookmark manage
       "b": ActionToggleBookmark           ; Toggle show bookmark
       "n": ActionAddBookmark              ; Bookmark current dir
-      "d": ActionDeleteBookmark           ; Delete bookmark
+      "d": ActionDeleteBookmarkOnce       ; Delete bookmark
+      "D": ActionDeleteBookmark           ; Delete multiple bookmark
       "w": ActionJumpBookmarkOnce         ; Jump Once
       "W": ActionJumpBookmark             ; Jump
     "1": ActionChangeGroup0               # Change group to 1

@@ -56,6 +56,7 @@ func start(redraw bool) {
 		case termbox.EventKey:
 			quitIt := 0
 			if isShell(ev) {
+				// TODO buggy, need to wait key handle complete
 				kbd <- ev
 				quitIt = 2
 			}
