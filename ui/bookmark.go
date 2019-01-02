@@ -33,7 +33,7 @@ func NewBookmark(p *Point, height int, names []string) *Bookmark {
 	t := NewText(p, bookmarkTitle)
 	line := NewHLine(p, 0)
 
-	list := NewList(p, -1, height-4, nil, nil)
+	list := NewList(p, -1, height-5, nil, nil)
 	bk := &Bookmark{0, height, t, line, list, NewDrawable(p)}
 	bk.SetData(names)
 	return bk

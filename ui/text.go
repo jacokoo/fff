@@ -121,3 +121,43 @@ func (rt *RightText) MoveTo(p *Point) *Point {
 	rt.End = p
 	return rt.Draw()
 }
+
+// FloatText restore the cells after clear
+type FloatText struct {
+	width  int
+	backed []termbox.Cell
+	*Text
+}
+
+// NewFloatText create float text
+func NewFloatText(p *Point, data string) *FloatText {
+	return &FloatText{0, nil, NewText(p, data)}
+}
+
+// Draw it
+func (ft *FloatText) Draw() *Point {
+	w := 0
+	for _, v := range ft.Text.Data {
+		w += runewidth.RuneWidth(v)
+	}
+	ft.width = w
+
+	cs := make([]termbox.Cell, 0)
+	width, _ := termbox.Size()
+	cells := termbox.CellBuffer()
+	base := width * ft.Start.Y
+	for i := 0; i < w; i++ {
+		cs = append(cs, cells[base+ft.Start.X+i])
+	}
+	ft.backed = cs
+
+	return ft.Text.Draw()
+}
+
+// Clear it
+func (ft *FloatText) Clear() {
+	for i := 0; i < ft.width; i++ {
+		termbox.SetCell(ft.Start.X+i, ft.Start.Y, ft.backed[i].Ch, ft.backed[i].Fg, ft.backed[i].Bg)
+	}
+	ft.backed = nil
+}

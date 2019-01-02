@@ -265,12 +265,16 @@ func init() {
 				ui.jumpItems = nil
 			}
 
+			if data == nil {
+				return
+			}
+
 			for _, v := range data.([]*JumpItem) {
 				if len(v.Key) == 0 {
 					continue
 				}
 
-				t := NewText(v.Point, string(v.Key))
+				t := NewFloatText(v.Point, string(v.Key))
 				t.Color = colorJump()
 				t.Draw()
 				ui.jumpItems = append(ui.jumpItems, t)

@@ -39,7 +39,7 @@ type UI struct {
 	StatusMessage *StatusBackup
 	StatusInput   *StatusBackup
 
-	jumpItems []*Text
+	jumpItems []*FloatText
 	help      *List
 }
 

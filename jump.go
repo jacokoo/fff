@@ -150,6 +150,9 @@ func collectCurrentPath() []*ui.JumpItem {
 
 func handleJumpResult(item *ui.JumpItem) {
 	ui.GuiNeedAck = true
+	ui.JumpRefreshEvent.Send(nil)
+	<-ui.GuiAck
+
 	co := item.Action()
 	<-ui.GuiAck
 	ui.GuiNeedAck = false
