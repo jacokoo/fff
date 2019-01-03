@@ -360,13 +360,44 @@ func (w *action) clearClip() {
 	ui.ClipChangedEvent.Send(nil)
 }
 
-func (w *action) toggleClipDetail() {
+func (w *action) showClipDetail() {
 	if wo.Clip == nil {
 		return
 	}
 
-	wo.ToggleClipDetail()
+	if !wo.IsShowClipDetail() {
+		wo.ToggleClipDetail()
+	}
+	changeMode(ModeClip)
 	ui.ToggleClipDetailEvent.Send(wo.IsShowClipDetail())
+}
+
+func (w *action) closeClipDetail() {
+	if wo.IsShowClipDetail() {
+		wo.ToggleClipDetail()
+	}
+	changeMode(ModeNormal)
+	ui.ToggleClipDetailEvent.Send(wo.IsShowClipDetail())
+}
+
+func (w *action) deleteClip(idx int) {
+	if wo.Clip == nil {
+		return
+	}
+
+	fs := make([]model.FileItem, 0)
+	for i, v := range wo.Clip {
+		if i != idx {
+			fs = append(fs, v)
+		}
+	}
+	if len(fs) == 0 {
+		fs = nil
+		wo.ToggleClipDetail()
+		bkMode = ModeNormal
+	}
+	wo.Clip = fs
+	ui.ClipChangedEvent.Send(wo.Clip)
 }
 
 func (w *action) copyFile() {

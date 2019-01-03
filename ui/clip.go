@@ -21,7 +21,7 @@ func NewClip(p *Point, height int) *Clip {
 	text.Color = colorClip()
 	list := NewList(p, -1, height, make([]string, 0), make([]int, 0))
 	dl := &DrawerList{NewDrawable(p), []Drawer{text, list}, func(pp *Point) *Point {
-		return text.Start.DownN(2).MoveRightN(2)
+		return text.Start.DownN(2)
 	}}
 	box := NewDBox(p, dl)
 	box.Color = colorClip()

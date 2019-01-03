@@ -120,25 +120,6 @@ func createUI(wo *model.Workspace) {
 	ui.help = NewHelp(h)
 }
 
-// EachFileList walk through all file list
-func EachFileList(fn func(int, *List)) {
-	d := 0
-	if ui.isShowBookmark() {
-		d = 1
-	}
-	for i, v := range ui.Column.items {
-		if v == ui.bkColumn {
-			continue
-		}
-		fn(i-d, v.item.(*FileList).list)
-	}
-}
-
-// CurrentFileList for jump current list
-func CurrentFileList() *List {
-	return ui.Column.Last().item.(*FileList).list
-}
-
 // BookmarkList for jump bookmark
 func BookmarkList() *List {
 	return ui.Bookmark.List

@@ -84,10 +84,11 @@ func (l *List) Select(item int) {
 
 // SetData update items
 func (l *List) SetData(items []string, hints []int, selected int) {
-	l.Clear()
 	l.Selected = selected
 	l.Data = items
 	l.colorHints = hints
+	l.from = 0
+	l.to = 0
 
 	l.items = make([]*Text, len(items))
 	for i, v := range items {

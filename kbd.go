@@ -20,6 +20,7 @@ const (
 	ModeJump
 	ModeInput
 	ModeHelp
+	ModeClip
 	ModeDisabled
 )
 
@@ -164,7 +165,10 @@ var (
 		"ActionMoveFile":           limit(ModeNormal, func() { ac.moveFile() }),
 		"ActionClearClip":          limit(ModeNormal, func() { ac.clearClip() }),
 		"ActionShowHelp":           limit(ModeNormal, func() { ac.showHelp() }),
-		"ActionToggleClipDetail":   limit(ModeNormal, func() { ac.toggleClipDetail() }),
+		"ActionShowClipDetail":     limit(ModeNormal, func() { ac.showClipDetail() }),
+		"ActionCloseClipDetail":    limit(ModeClip, func() { ac.closeClipDetail() }),
+		"ActionDeleteClipOnce":     limit(ModeClip, func() { enterJumpMode(jumpDeleteClip) }),
+		"ActionDeleteClip":         limit(ModeClip, func() { enterJumpMode(cjumpDeleteClip) }),
 
 		"ActionDeleteFile": limit(ModeNormal, func() {
 			s := ac.deletePrompt()
@@ -230,15 +234,17 @@ func restoreKbds() {
 		currentKbds = cfg.jumpKbds
 	case ModeInput:
 		currentKbds = cfg.inputKbds
+	case ModeClip:
+		currentKbds = cfg.clipKbds
 	default:
 		currentKbds = nil
 	}
 }
 
-func doAction(ev termbox.Event) {
+func doAction(ev termbox.Event) bool {
 	if ev.Key == termbox.KeyEsc && keyPrefixed {
 		restoreKbds()
-		return
+		return true
 	}
 
 	var c *cmd
@@ -251,7 +257,7 @@ func doAction(ev termbox.Event) {
 
 	if c == nil {
 		restoreKbds()
-		return
+		return false
 	}
 
 	if !c.prefix {
@@ -261,7 +267,7 @@ func doAction(ev termbox.Event) {
 		}
 
 		restoreKbds()
-		return
+		return true
 	}
 
 	currentKbds = c.children
@@ -278,6 +284,7 @@ func doAction(ev termbox.Event) {
 	}
 	ui.MessageEvent.Send(m)
 	keyPrefixed = true
+	return true
 }
 
 func isQuit(ev termbox.Event) bool {
@@ -337,6 +344,12 @@ func kbdHandleInput(ev termbox.Event) {
 	doAction(ev)
 }
 
+func kbdHandleClip(ev termbox.Event) {
+	if !doAction(ev) {
+		ac.closeClipDetail()
+	}
+}
+
 func handleKeyEvent() {
 	for {
 		select {
@@ -351,6 +364,8 @@ func handleKeyEvent() {
 			case ModeHelp:
 				ac.closeHelp()
 				restoreKbds()
+			case ModeClip:
+				kbdHandleClip(ev)
 			}
 		case <-kbdQuit:
 			return

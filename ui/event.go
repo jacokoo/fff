@@ -283,11 +283,15 @@ func init() {
 
 		ClipChangedEvent: func(data interface{}) {
 			ui.Clip.Clear()
-			if data != nil {
+			if data == nil || len(data.(model.CopySource)) == 0 {
+				ui.Clip.showDetail = false
+				ui.Column.Draw()
+				ui.Clip.SetData(nil)
+			} else {
+				items := make([]string, 0)
 				cs := data.(model.CopySource)
-				items := make([]string, len(cs))
-				for i, v := range cs {
-					items[i] = v.Path()
+				for _, v := range cs {
+					items = append(items, fmt.Sprintf("  %s", v.Path()))
 				}
 				ui.Clip.SetData(items)
 				ui.Clip.MoveTo(ui.Path.End.Right())
@@ -300,6 +304,9 @@ func init() {
 			}
 
 			ui.Clip.Clear()
+			if len(ui.Clip.items) == 0 {
+				return
+			}
 			ui.Clip.showDetail = data.(bool)
 			ui.Clip.MoveTo(ui.Path.End.Right())
 			if !ui.Clip.showDetail {

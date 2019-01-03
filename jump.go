@@ -40,6 +40,8 @@ var (
 	cjumpDeleteBookmark *JumpMode
 	jumpCurrentDir      *JumpMode
 	cjumpCurrentDir     *JumpMode
+	jumpDeleteClip      *JumpMode
+	cjumpDeleteClip     *JumpMode
 )
 
 var (
@@ -69,6 +71,20 @@ func init() {
 
 	jumpCurrentDir = &JumpMode{collectCurrentDir, nil}
 	cjumpCurrentDir = &JumpMode{collectCurrentDir, collectCurrentDir}
+
+	jumpDeleteClip = &JumpMode{collectClip, nil}
+	cjumpDeleteClip = &JumpMode{collectClip, collectClip}
+}
+
+func collectClip() []*ui.JumpItem {
+	return ui.ClipList().JumpItems(func(idx int) string {
+		return wo.Clip[idx].Name()
+	}, func(idx int) func() bool {
+		return func() bool {
+			ac.deleteClip(idx)
+			return true
+		}
+	})
 }
 
 func collectAllDir() []*ui.JumpItem {
@@ -211,9 +227,13 @@ func handleKeys() {
 }
 
 func enterJumpMode(md *JumpMode) {
+	jumpItems = md.Collect()
+	if len(jumpItems) == 0 {
+		return
+	}
+
 	bkMode = mode
 	jumpMode = md
-	jumpItems = md.Collect()
 	keyThem(jumpItems)
 	ui.JumpRefreshEvent.Send(jumpItems)
 	go handleKeys()

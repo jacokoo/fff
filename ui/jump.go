@@ -34,6 +34,30 @@ func headingTwoChar(name string) []rune {
 	return ns[:2]
 }
 
+// EachFileList walk through all file list
+func EachFileList(fn func(int, *List)) {
+	d := 0
+	if ui.isShowBookmark() {
+		d = 1
+	}
+	for i, v := range ui.Column.items {
+		if v == ui.bkColumn {
+			continue
+		}
+		fn(i-d, v.item.(*FileList).list)
+	}
+}
+
+// CurrentFileList for jump current list
+func CurrentFileList() *List {
+	return ui.Column.Last().item.(*FileList).list
+}
+
+// ClipList the list inside clip detail
+func ClipList() *List {
+	return ui.Clip.list
+}
+
 // JumpItems jump items of tab
 func (t *Tab) JumpItems(fn func(int) func() bool) []*JumpItem {
 	re := make([]*JumpItem, 0)

@@ -72,7 +72,7 @@ binding:
     "e": ActionEdit                       # Run editor
     "v": ActionView                       # Run pager
     "?": ActionShowHelp                   # Show help
-    "t": ActionToggleClipDetail           # Toggle show clip detail
+    "t": ActionShowClipDetail             # Toggle show clip detail
 
   # bindings for jump mode
   jump:
@@ -83,6 +83,10 @@ binding:
     "enter": ActionQuitInputMode
     "esc": ActionAbortInputMode
     "backspace": ActionInputDelete
+
+  clip:
+    "w": ActionDeleteClipOnce             # Jump to delete clip once
+    "W": ActionDeleteClip                 # Jump to delete clip
 
 color:
   normal: default
@@ -96,7 +100,7 @@ color:
   jump: yellow
   filter: magenta
   indicator: green
-  clip: cyan
+  clip: yellow
 
 editor: vi
 shell: sh
@@ -119,6 +123,7 @@ type config struct {
 	normalKbds []*cmd
 	jumpKbds   []*cmd
 	inputKbds  []*cmd
+	clipKbds   []*cmd
 	colors     map[string]*ui.Color
 	editor     string
 	shell      string
@@ -208,10 +213,12 @@ func readBindings(ds interface{}, cfg *config) {
 	cfg.normalKbds = append(all, cfg.normalKbds...)
 	cfg.jumpKbds = append(all, cfg.jumpKbds...)
 	cfg.inputKbds = append(all, cfg.inputKbds...)
+	cfg.clipKbds = append(all, cfg.clipKbds...)
 
 	cfg.normalKbds = append(readBinding(dd["normal"]), cfg.normalKbds...)
 	cfg.jumpKbds = append(readBinding(dd["jump"]), cfg.jumpKbds...)
 	cfg.inputKbds = append(readBinding(dd["input"]), cfg.inputKbds...)
+	cfg.clipKbds = append(readBinding(dd["clip"]), cfg.clipKbds...)
 }
 
 func readYaml(ds []byte, cfg *config) {

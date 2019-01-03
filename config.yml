@@ -56,7 +56,7 @@ binding:
     "e": ActionEdit                       # Run editor
     "v": ActionView                       # Run pager
     "?": ActionShowHelp                   # Show help
-    "t": ActionToggleClipDetail           # Toggle show clip detail
+    "t": ActionShowClipDetail             # Toggle show clip detail
 
   # bindings for jump mode
   jump:
@@ -67,6 +67,10 @@ binding:
     "enter": ActionQuitInputMode
     "esc": ActionAbortInputMode
     "backspace": ActionInputDelete
+
+  clip:
+    "w": ActionDeleteClipOnce             # Jump to delete clip once
+    "W": ActionDeleteClip                 # Jump to delete clip
 
 color:
   normal: default
@@ -80,7 +84,7 @@ color:
   jump: yellow
   filter: magenta
   indicator: green
-  clip: cyan
+  clip: yellow
 
 editor: vi
 shell: sh
