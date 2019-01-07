@@ -33,10 +33,10 @@ func (c *Clip) Draw() *Point {
 	c.showed = true
 	if c.showDetail {
 		c.list.SetData(c.items, make([]int, len(c.items)), -1)
-		c.End = c.box.MoveTo(c.Start)
+		c.End = Move(c.box, c.Start)
 		return c.End
 	}
-	c.End = c.text.MoveTo(c.Start)
+	c.End = Move(c.text, c.Start)
 	return c.End
 }
 
@@ -49,8 +49,7 @@ func (c *Clip) Clear() {
 	c.Drawable.Clear()
 }
 
-// MoveTo update location
-func (c *Clip) MoveTo(p *Point) *Point {
+func (c *Clip) moveTo(p *Point) *Point {
 	c.Start = p
 	if c.showDetail {
 		c.Start = p.Up()

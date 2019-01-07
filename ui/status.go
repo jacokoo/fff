@@ -35,7 +35,7 @@ func NewStatus(p *Point, width int) *Status {
 func (s *Status) Draw() *Point {
 	p := s.Start.RightN(0)
 	for _, v := range s.items {
-		p = v.MoveTo(p)
+		p = Move(v, p)
 		p = p.RightN(v.padding)
 	}
 	return s.End
@@ -48,8 +48,7 @@ func (s *Status) Clear() {
 	}
 }
 
-// MoveTo update location
-func (s *Status) MoveTo(p *Point) *Point {
+func (s *Status) moveTo(p *Point) *Point {
 	return s.End
 }
 

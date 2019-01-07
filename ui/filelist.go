@@ -42,22 +42,16 @@ func (fl *FileList) setCurrent(current int) {
 
 // Draw it
 func (fl *FileList) Draw() *Point {
-	p := fl.list.MoveTo(fl.Start).Down()
+	p := Move(fl.list, fl.Start).Down()
 	pp := p.Right()
 	pp.X = fl.Start.X
-	fl.filter.MoveTo(pp)
+	Move(fl.filter, pp)
 
 	fl.End = p
 
 	p = p.RightN(0)
-	fl.countInfo.MoveTo(p.LeftN(len(fl.countInfo.Data) + 1))
+	Move(fl.countInfo, p.LeftN(len(fl.countInfo.Data)+1))
 	return fl.End
-}
-
-// MoveTo update location
-func (fl *FileList) MoveTo(p *Point) *Point {
-	fl.Start = p
-	return fl.Draw()
 }
 
 const (

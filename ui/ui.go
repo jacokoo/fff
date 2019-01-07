@@ -101,7 +101,7 @@ func createUI(wo *model.Workspace) {
 	ui.Bookmark = NewBookmark(ZeroPoint, h-4, wo.Bookmark.Names)
 	initFiles(wo.IsShowBookmark(), wo.CurrentGroup())
 
-	ui.helpMark = NewRightText(ZeroPoint.Down().RightN(w), "[Press ? for help]")
+	ui.helpMark = NewRightText(ZeroPoint.Down().RightN(w), "[?]")
 	p = ui.helpMark.Draw()
 	ui.tasks = NewRightText(p.Left(), "")
 

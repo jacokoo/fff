@@ -33,7 +33,7 @@ func newColumnItem(height int, singleLine bool, item Drawer) *ColumnItem {
 
 // Draw it
 func (ci *ColumnItem) Draw() *Point {
-	p := ci.item.MoveTo(ci.Start)
+	p := Move(ci.item, ci.Start)
 	if !ci.showLine {
 		ci.End = p
 		return p
@@ -41,16 +41,10 @@ func (ci *ColumnItem) Draw() *Point {
 
 	p = p.Right()
 	p.Y = ci.Start.Y
-	ci.corner.MoveTo(p.Up())
-	p = ci.line.MoveTo(p)
+	Move(ci.corner, p.Up())
+	p = Move(ci.line, p)
 	ci.End = p
 	return p
-}
-
-// MoveTo update location
-func (ci *ColumnItem) MoveTo(p *Point) *Point {
-	ci.Start = p
-	return ci.Draw()
 }
 
 // Clear it
@@ -78,13 +72,13 @@ func NewColumn(p *Point, width, height int) *Column {
 
 // Draw it
 func (c *Column) Draw() *Point {
-	p := c.line.MoveTo(c.Start)
+	p := Move(c.line, c.Start)
 	c.End.X = p.X
 	c.End.Y = c.Start.Y + c.Height - 1
 
 	p = c.Start.Down()
 	for _, v := range c.items {
-		pp := v.MoveTo(p).Right()
+		pp := Move(v, p).Right()
 		pp.Y = p.Y
 		p = pp
 	}
@@ -101,13 +95,7 @@ func (c *Column) resetIndicator() {
 	c.indicator.Data = indicatorString
 	c.indicator.Color = colorIndicator()
 	last := c.Last()
-	c.indicator.MoveTo(&Point{last.Start.X + (last.End.X-last.Start.X)/2 - 1, c.Start.Y})
-}
-
-// MoveTo update loation
-func (c *Column) MoveTo(p *Point) *Point {
-	c.Start = p
-	return c.Draw()
+	Move(c.indicator, &Point{last.Start.X + (last.End.X-last.Start.X)/2 - 1, c.Start.Y})
 }
 
 func (c *Column) add(item Drawer, singleLine bool) *ColumnItem {

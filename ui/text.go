@@ -32,12 +32,6 @@ func (t *Text) Draw() *Point {
 	return t.End
 }
 
-// MoveTo update location
-func (t *Text) MoveTo(p *Point) *Point {
-	t.Start = p
-	return t.Draw()
-}
-
 // Keyed is a container with key
 type Keyed struct {
 	Key  string
@@ -57,21 +51,20 @@ func NewKeyed(p *Point, key string, item Drawer) *Keyed {
 func (k *Keyed) Draw() *Point {
 	k.left.Data = fmt.Sprintf("%s[", k.Key)
 	k.left.Color = colorKeyword()
-	e := k.left.MoveTo(k.Start)
+	e := Move(k.left, k.Start)
 
-	e = k.item.MoveTo(e.Right())
+	e = Move(k.item, e.Right())
 	k.right.Data = "]"
 	k.right.Color = colorKeyword()
-	k.End = k.right.MoveTo(e.Right())
+	k.End = Move(k.right, e.Right())
 	return k.End
 }
 
-// MoveTo update location
-func (k *Keyed) MoveTo(p *Point) *Point {
+func (k *Keyed) moveTo(p *Point) *Point {
 	k.Start = p
-	e := k.left.MoveTo(p)
-	e = k.item.MoveTo(e.Right())
-	k.End = k.right.MoveTo(e.Right())
+	e := Move(k.left, p)
+	e = Move(k.item, e.Right())
+	k.End = Move(k.right, e.Right())
 	return k.End
 }
 
@@ -115,8 +108,7 @@ func (rt *RightText) Draw() *Point {
 	return rt.Text.Draw()
 }
 
-// MoveTo update location
-func (rt *RightText) MoveTo(p *Point) *Point {
+func (rt *RightText) moveTo(p *Point) *Point {
 	rt.Start = p
 	rt.End = p
 	return rt.Draw()

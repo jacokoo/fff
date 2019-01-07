@@ -35,7 +35,7 @@ func NewDBox(p *Point, item Drawer) *Box {
 // Draw it
 func (b *Box) draw() *Point {
 	p := b.Start.Right().MoveDown()
-	p = b.item.MoveTo(p)
+	p = Move(b.item, p)
 	br := p.RightN(3).MoveDown()
 	bl := &Point{b.Start.X, br.Y}
 	tl := b.Start
@@ -94,10 +94,4 @@ func (b *Box) Draw() *Point {
 	b.draw()
 	b.Clear()
 	return b.draw()
-}
-
-// MoveTo update location
-func (b *Box) MoveTo(p *Point) *Point {
-	b.Start = p
-	return b.Draw()
 }

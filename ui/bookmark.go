@@ -41,19 +41,13 @@ func NewBookmark(p *Point, height int, names []string) *Bookmark {
 
 // Draw it
 func (b *Bookmark) Draw() *Point {
-	b.title.MoveTo(b.Start.Down().MoveRightN((b.Width - 9) / 2))
-	b.line.MoveTo(b.Start.DownN(3))
+	Move(b.title, b.Start.Down().MoveRightN((b.Width-9)/2))
+	Move(b.line, b.Start.DownN(3))
 	b.List.Start = b.Start.DownN(4)
 	b.List.Draw()
 	b.End.X = b.Start.X + b.Width
 	b.End.Y = b.Start.Y + b.Height
 	return b.End
-}
-
-// MoveTo update location
-func (b *Bookmark) MoveTo(p *Point) *Point {
-	b.Start = p
-	return b.Draw()
 }
 
 // SetData reset bookmark data

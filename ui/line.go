@@ -58,9 +58,3 @@ func (v *VLine) Draw() *Point {
 
 	return v.End
 }
-
-// MoveTo update location
-func (v *VLine) MoveTo(p *Point) *Point {
-	v.Start = p
-	return v.Draw()
-}

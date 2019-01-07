@@ -129,7 +129,7 @@ func init() {
 			ui.Path.SetValue(data.(string))
 			p := ui.Path.Draw()
 			if showed {
-				ui.Clip.MoveTo(p.Right())
+				Move(ui.Clip, p.Right())
 			}
 		},
 
@@ -294,7 +294,7 @@ func init() {
 					items = append(items, fmt.Sprintf("  %s", v.Path()))
 				}
 				ui.Clip.SetData(items)
-				ui.Clip.MoveTo(ui.Path.End.Right())
+				Move(ui.Clip, ui.Path.End.Right())
 			}
 		},
 
@@ -308,7 +308,7 @@ func init() {
 				return
 			}
 			ui.Clip.showDetail = data.(bool)
-			ui.Clip.MoveTo(ui.Path.End.Right())
+			Move(ui.Clip, ui.Path.End.Right())
 			if !ui.Clip.showDetail {
 				ui.Column.Draw()
 			}
@@ -331,7 +331,7 @@ func init() {
 				m = fmt.Sprintf("%s[%s %d/%d]", m, v.Name(), v.Current()+1, v.Count())
 			}
 			ui.tasks.Data = m
-			ui.tasks.MoveTo(ui.helpMark.Start.Left())
+			Move(ui.tasks, ui.helpMark.Start.Left())
 		},
 
 		ShowHelpEvent: func(data interface{}) {

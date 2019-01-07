@@ -54,7 +54,7 @@ func (l *List) Draw() *Point {
 		if i == l.Selected {
 			v.Color = v.Color.Reverse()
 		}
-		p := v.MoveTo(l.Start.DownN(j))
+		p := Move(v, l.Start.DownN(j))
 		if p.X > maxX {
 			maxX = p.X
 		}
@@ -64,12 +64,6 @@ func (l *List) Draw() *Point {
 	l.End.X = maxX
 	l.End.Y = l.Start.Y + l.Height - 1
 	return l.End
-}
-
-// MoveTo update location
-func (l *List) MoveTo(p *Point) *Point {
-	l.Start = p
-	return l.Draw()
 }
 
 // Select change the selected item to item
