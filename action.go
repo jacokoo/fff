@@ -139,7 +139,12 @@ func (w *action) jumpTo(colIdx, fileIdx int, openIt bool) bool {
 }
 
 func (w *action) refresh() {
-	wo.CurrentGroup().Refresh()
+	gr := wo.CurrentGroup()
+	file, err := gr.Current().CurrentFile()
+	gr.Refresh()
+	if err == nil {
+		gr.Current().SelectByName(file.Name())
+	}
 	ui.ColumnContentChangeEvent.Send(wo.CurrentGroup().Current())
 }
 
