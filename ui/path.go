@@ -24,26 +24,26 @@ func pathItems(path string) []string {
 	return ts
 }
 
-func createPathItems(items []string) (*DrawerList, []*Text) {
-	ds := make([]Drawer, 0, len(items)*2-1)
+func createPathItems(items []string) (*FlowLayout, []*Text) {
+	ds := NewFlowLayout(ZeroPoint, func(p *Point) *Point { return p.RightN(1) })
 	its := make([]*Text, 0, len(items))
 
 	t := NewText(ZeroPoint, items[0])
 	t.Color = colorFolder()
-	ds = append(ds, t)
+	ds.Append(t)
 	its = append(its, t)
 
 	for i := 1; i < len(items); i++ {
 		if i > 1 || (i == 1 && items[0] != "/") {
-			ds = append(ds, NewText(ZeroPoint, fmt.Sprintf("%c", filepath.Separator)))
+			ds.Append(NewText(ZeroPoint, fmt.Sprintf("%c", filepath.Separator)))
 		}
 		t = NewText(ZeroPoint, items[i])
 		t.Color = colorFolder()
-		ds = append(ds, t)
+		ds.Append(t)
 		its = append(its, t)
 	}
 
-	return &DrawerList{NewDrawable(ZeroPoint), ds, func(p *Point) *Point { return p.RightN(1) }}, its
+	return ds, its
 }
 
 // NewPath create path

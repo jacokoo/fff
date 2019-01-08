@@ -26,14 +26,18 @@ var (
 
 // UI hold all ui items
 type UI struct {
-	Tab      *Tab
-	Path     *Path
-	Clip     *Clip
+	Tab        *Tab
+	Path       *Path
+	Clip       *Clip
+	headerLeft *FlowLayout
+
+	tasks       *Text
+	helpMark    *Text
+	headerRight *RightAlignFlowLayout
+
 	Column   *Column
 	Bookmark *Bookmark
 	bkColumn *ColumnItem
-	helpMark *RightText
-	tasks    *RightText
 
 	Status        *Status
 	StatusMessage *StatusBackup
@@ -83,27 +87,31 @@ func initFiles(showBookmark bool, g model.Group) {
 
 func createUI(wo *model.Workspace) {
 	w, h := termbox.Size()
-	p := ZeroPoint.Down()
+	ui.headerLeft = NewFlowLayout(ZeroPoint.Down(), func(p *Point) *Point {
+		return p.Right()
+	})
 
 	names := make([]string, len(wo.Groups))
 	for i := range wo.Groups {
 		names[i] = fmt.Sprintf(" %d ", i+1)
 	}
-	ui.Tab = NewTab(p, "", names)
-	p = ui.Tab.Draw().Right()
+	ui.Tab = NewTab(ZeroPoint, "", names)
+	ui.Path = NewPath(ZeroPoint, "", wo.CurrentGroup().Path())
+	ui.Clip = NewClip(ZeroPoint, h)
+	ui.headerLeft.Append(ui.Tab, ui.Path, ui.Clip)
+	ui.headerLeft.Draw()
 
-	ui.Path = NewPath(p, "", wo.CurrentGroup().Path())
-	p = ui.Path.Draw()
-	ui.Clip = NewClip(p.RightN(2), h)
-
-	p = ZeroPoint.DownN(3)
-	ui.Column = NewColumn(p, w, h-4)
+	ui.Column = NewColumn(ZeroPoint.DownN(3), w, h-4)
 	ui.Bookmark = NewBookmark(ZeroPoint, h-4, wo.Bookmark.Names)
 	initFiles(wo.IsShowBookmark(), wo.CurrentGroup())
 
-	ui.helpMark = NewRightText(ZeroPoint.Down().RightN(w), "[?]")
-	p = ui.helpMark.Draw()
-	ui.tasks = NewRightText(p.Left(), "")
+	ui.headerRight = NewRightAlignFlowLayout(ZeroPoint.Down().RightN(w), func(p *Point) *Point {
+		return p.Right()
+	})
+	ui.helpMark = NewText(ZeroPoint, "[?]")
+	ui.tasks = NewText(ZeroPoint, "")
+	ui.headerRight.Append(ui.tasks, ui.helpMark)
+	ui.headerRight.Draw()
 
 	ui.Status = NewStatus(&Point{0, h - 1}, w)
 	ui.Status.Draw()

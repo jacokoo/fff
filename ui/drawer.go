@@ -1,5 +1,9 @@
 package ui
 
+import (
+	"github.com/nsf/termbox-go"
+)
+
 // Drawer is the base interface for ui components
 type Drawer interface {
 	setStart(*Point)
@@ -18,6 +22,14 @@ func Move(d Drawer, p *Point) *Point {
 	}
 	d.setStart(p)
 	return d.Draw()
+}
+
+func measure(d Drawer) (int, int) {
+	w, _ := termbox.Size()
+	p := &Point{w + 1, 0}
+	pp := Move(d, p)
+	d.Clear()
+	return pp.X - p.X + 1, pp.Y - p.Y + 1
 }
 
 // Drawable contains base properties for draw
@@ -39,24 +51,4 @@ func (d *Drawable) Draw() *Point {
 // NewDrawable create drawable
 func NewDrawable(p *Point) *Drawable {
 	return &Drawable{p.ToRect(), getColor("normal")}
-}
-
-// DrawerList a batch of drawer
-type DrawerList struct {
-	*Drawable
-	Drawers []Drawer
-	padding func(*Point) *Point
-}
-
-// Draw it
-func (d *DrawerList) Draw() *Point {
-	p := d.Start
-	for i, v := range d.Drawers {
-		p = Move(v, p)
-		if i != len(d.Drawers)-1 {
-			p = d.padding(p)
-		}
-	}
-	d.End = p
-	return p
 }

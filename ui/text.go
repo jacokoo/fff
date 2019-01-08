@@ -44,26 +44,21 @@ type Keyed struct {
 
 // NewKeyed create Keyed
 func NewKeyed(p *Point, key string, item Drawer) *Keyed {
-	return &Keyed{key, item, NewDrawable(p), NewText(ZeroPoint, ""), NewText(ZeroPoint, "")}
+	left := NewText(ZeroPoint, "")
+	left.Color = colorKeyword()
+
+	right := NewText(ZeroPoint, "")
+	right.Color = colorKeyword()
+	return &Keyed{key, item, NewDrawable(p), left, right}
 }
 
 // Draw it
 func (k *Keyed) Draw() *Point {
 	k.left.Data = fmt.Sprintf("%s[", k.Key)
-	k.left.Color = colorKeyword()
 	e := Move(k.left, k.Start)
 
 	e = Move(k.item, e.Right())
 	k.right.Data = "]"
-	k.right.Color = colorKeyword()
-	k.End = Move(k.right, e.Right())
-	return k.End
-}
-
-func (k *Keyed) moveTo(p *Point) *Point {
-	k.Start = p
-	e := Move(k.left, p)
-	e = Move(k.item, e.Right())
 	k.End = Move(k.right, e.Right())
 	return k.End
 }
@@ -85,33 +80,6 @@ func NewLabel(p *Point, name, data string) *Label {
 func (l *Label) SetData(data string) {
 	l.Data = data
 	l.text.Data = data
-}
-
-// RightText right align text
-type RightText struct {
-	*Text
-}
-
-// NewRightText create RightText
-func NewRightText(p *Point, data string) *RightText {
-	return &RightText{NewText(p, data)}
-}
-
-// Draw it
-func (rt *RightText) Draw() *Point {
-	si := len(rt.Data)
-	delta := 0
-	if rt.Start.X != rt.End.X {
-		delta = 1
-	}
-	rt.Start.X = rt.End.X - si + delta
-	return rt.Text.Draw()
-}
-
-func (rt *RightText) moveTo(p *Point) *Point {
-	rt.Start = p
-	rt.End = p
-	return rt.Draw()
 }
 
 // FloatText restore the cells after clear

@@ -3,26 +3,23 @@ package ui
 // Tab is the ui tab sheet
 type Tab struct {
 	Current int
-	names   *DrawerList
+	names   *FlowLayout
 	*Keyed
 }
 
 // NewTab create tab
 func NewTab(p *Point, name string, names []string) *Tab {
-	ns := make([]Drawer, len(names))
+	dl := NewFlowLayout(ZeroPoint, func(pp *Point) *Point {
+		return pp.Right()
+	})
 	for i, v := range names {
 		t := NewText(ZeroPoint, v)
 		if i == 0 {
 			t.Color = colorTab()
 		}
-		ns[i] = t
+		dl.Append(t)
 	}
 
-	pa := func(pp *Point) *Point {
-		return pp.Right()
-	}
-
-	dl := &DrawerList{NewDrawable(ZeroPoint), ns, pa}
 	k := NewKeyed(p, name, dl)
 	return &Tab{0, dl, k}
 }

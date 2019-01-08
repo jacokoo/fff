@@ -123,14 +123,8 @@ func init() {
 		},
 
 		changeCurrent: func(data interface{}) {
-			showed := ui.Clip.showed
-			ui.Clip.Clear()
-			ui.Path.Clear()
 			ui.Path.SetValue(data.(string))
-			p := ui.Path.Draw()
-			if showed {
-				Move(ui.Clip, p.Right())
-			}
+			ui.headerLeft.DoLayout()
 		},
 
 		ChangeGroupEvent: func(data interface{}) {
@@ -284,8 +278,6 @@ func init() {
 		ClipChangedEvent: func(data interface{}) {
 			ui.Clip.Clear()
 			if data == nil || len(data.(model.CopySource)) == 0 {
-				ui.Clip.showDetail = false
-				ui.Column.Draw()
 				ui.Clip.SetData(nil)
 			} else {
 				items := make([]string, 0)
@@ -294,23 +286,23 @@ func init() {
 					items = append(items, fmt.Sprintf("  %s", v.Path()))
 				}
 				ui.Clip.SetData(items)
-				Move(ui.Clip, ui.Path.End.Right())
+			}
+			ui.Clip.Draw()
+			if ui.Clip.showDetail {
+				ui.Clip.Close()
+				ui.Clip.Open()
 			}
 		},
 
 		ToggleClipDetailEvent: func(data interface{}) {
-			if !ui.Clip.showed {
-				return
-			}
-
-			ui.Clip.Clear()
 			if len(ui.Clip.items) == 0 {
 				return
 			}
-			ui.Clip.showDetail = data.(bool)
-			Move(ui.Clip, ui.Path.End.Right())
-			if !ui.Clip.showDetail {
-				ui.Column.Draw()
+			show := data.(bool)
+			if show {
+				ui.Clip.Open()
+			} else {
+				ui.Clip.Close()
 			}
 		},
 
