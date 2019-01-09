@@ -72,7 +72,10 @@ binding:
     "e": ActionEdit                       # Run editor
     "v": ActionView                       # Run pager
     "?": ActionShowHelp                   # Show help
-    "t": ActionShowClipDetail             # Toggle show clip detail
+    "t":
+      "c": ActionShowClipDetail           ; Show clip detail
+      "t": ActionShowTaskDetail           ; Show task detail
+      "d": ActionCloseTaskDetail          ; Close task detail
 
   # bindings for jump mode
   jump:

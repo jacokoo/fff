@@ -97,8 +97,12 @@ func NewVerticalLayout(p *Point, padding func(*Point) *Point, items ...Drawer) *
 // Draw it
 func (vl VerticalLayout) Draw() *Point {
 	p := vl.Start.DownN(vl.TopPadding)
+	end := vl.Start.X
 	for i, v := range vl.Drawers {
 		pp := Move(v, p).Down()
+		if pp.X > end {
+			end = pp.X
+		}
 		pp.X = p.X
 		if i != len(vl.Drawers)-1 && vl.padding != nil {
 			pp = vl.padding(pp)
@@ -109,5 +113,6 @@ func (vl VerticalLayout) Draw() *Point {
 		p.MoveUp()
 	}
 	vl.End = p.DownN(vl.BottomPadding)
+	vl.End.X = end
 	return vl.End
 }

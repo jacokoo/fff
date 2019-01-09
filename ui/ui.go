@@ -31,7 +31,7 @@ type UI struct {
 	Clip       *Clip
 	headerLeft *FlowLayout
 
-	tasks       *Text
+	tasks       *Task
 	helpMark    *Text
 	headerRight *RightAlignFlowLayout
 
@@ -105,7 +105,7 @@ func createUI(wo *model.Workspace) {
 
 	ui.headerRight = NewRightAlignFlowLayout(ZeroPoint.Down().RightN(w), nil)
 	ui.helpMark = NewText(ZeroPoint, "[?]")
-	ui.tasks = NewText(ZeroPoint, "")
+	ui.tasks = NewTask(ZeroPoint)
 	ui.headerRight.Append(ui.tasks, ui.helpMark)
 	ui.headerRight.Draw()
 

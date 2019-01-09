@@ -24,7 +24,6 @@ var (
 	quit      = make(chan int)
 	cfg       = initConfig()
 	ac        = new(action)
-	tm        = model.NewTaskManager()
 
 	wo         *model.Workspace
 	command    *exec.Cmd

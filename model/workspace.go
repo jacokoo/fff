@@ -8,10 +8,12 @@ import (
 type Workspace struct {
 	Groups         []Group
 	Clip           CopySource
+	Tm             *TaskManager
 	Current        int
 	Bookmark       *Bookmark
 	showBookmark   bool
 	showClipDetail bool
+	showTaskDetail bool
 }
 
 // NewWorkspace create workspace
@@ -23,7 +25,7 @@ func NewWorkspace(maxGroups int, wd, configDir string) *Workspace {
 	}
 	gs[0] = g
 
-	return &Workspace{gs, nil, 0, NewBookmark(filepath.Join(configDir, "bookmarks")), true, false}
+	return &Workspace{gs, nil, NewTaskManager(), 0, NewBookmark(filepath.Join(configDir, "bookmarks")), true, false, false}
 }
 
 // CurrentGroup get the current group in use
@@ -59,7 +61,17 @@ func (w *Workspace) IsShowClipDetail() bool {
 	return w.showClipDetail
 }
 
-// ToggleClipDetail toggle clip detail
-func (w *Workspace) ToggleClipDetail() {
-	w.showClipDetail = !w.showClipDetail
+// ShowClipDetail if to show clip detail
+func (w *Workspace) ShowClipDetail(show bool) {
+	w.showClipDetail = show
+}
+
+// IsShowTaskDetail if to show clip detail
+func (w *Workspace) IsShowTaskDetail() bool {
+	return w.showTaskDetail
+}
+
+// ShowTaskDetail if to show task detail
+func (w *Workspace) ShowTaskDetail(show bool) {
+	w.showTaskDetail = show
 }

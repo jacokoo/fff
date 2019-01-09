@@ -49,7 +49,7 @@ func (cs CopySource) CopyTask(op Operator, target string) (Task, bool) {
 	for i, v := range ops {
 		oldpath := v
 		newpath := nps[i]
-		tasks[i] = NewTask(fmt.Sprintf("Copy %s", filepath.Base(v)), func(progress chan<- int, quit <-chan bool, err chan<- error) {
+		tasks[i] = NewTask(filepath.Base(v), func(progress chan<- int, quit <-chan bool, err chan<- error) {
 			op.CopyFile(oldpath, newpath, progress, err, quit)
 		})
 	}

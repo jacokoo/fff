@@ -9,6 +9,7 @@ import (
 )
 
 type action struct {
+	taskListeners []model.ProgressListener
 }
 
 func (w *action) sort(order model.Order) {
@@ -366,21 +367,19 @@ func (w *action) clearClip() {
 }
 
 func (w *action) showClipDetail() {
-	if wo.Clip == nil {
+	if wo.Clip == nil || wo.IsShowClipDetail() {
 		return
 	}
-
-	if !wo.IsShowClipDetail() {
-		wo.ToggleClipDetail()
-	}
+	wo.ShowClipDetail(true)
 	changeMode(ModeClip)
 	ui.ToggleClipDetailEvent.Send(wo.IsShowClipDetail())
 }
 
 func (w *action) closeClipDetail() {
-	if wo.IsShowClipDetail() {
-		wo.ToggleClipDetail()
+	if !wo.IsShowClipDetail() {
+		return
 	}
+	wo.ShowClipDetail(false)
 	changeMode(ModeNormal)
 	ui.ToggleClipDetailEvent.Send(wo.IsShowClipDetail())
 }
@@ -398,11 +397,29 @@ func (w *action) deleteClip(idx int) {
 	}
 	if len(fs) == 0 {
 		fs = nil
-		wo.ToggleClipDetail()
+		wo.ShowClipDetail(false)
 		bkMode = ModeNormal
 	}
 	wo.Clip = fs
 	ui.ClipChangedEvent.Send(wo.Clip)
+}
+
+func (w *action) showTaskDetail() {
+	if len(wo.Tm.Tasks) == 0 || wo.IsShowTaskDetail() {
+		return
+	}
+
+	wo.ShowTaskDetail(true)
+	ui.ToggleTaskDetailEvent.Send(true)
+}
+
+func (w *action) closeTaskDetail() {
+	if !wo.IsShowTaskDetail() {
+		return
+	}
+
+	wo.ShowTaskDetail(false)
+	ui.ToggleTaskDetailEvent.Send(false)
 }
 
 func (w *action) copyFile() {
@@ -418,24 +435,21 @@ func (w *action) copyFile() {
 		ui.MessageEvent.Send("No file to copy")
 		return
 	}
-	ch := make(chan int)
-	task.Attach(ch)
-	go func() {
-		for range ch {
-			ui.TaskChangedEvent.Send(tm)
-		}
-	}()
 
-	msg := tm.Submit(task)
+	task.Attach(model.NewListener(func(progress int) {
+		ui.TaskChangedEvent.Send(wo.Tm)
+	}, nil))
+
+	msg := wo.Tm.Submit(task)
 	go func() {
 		for v := range msg {
 			ui.MessageEvent.Send(v)
 		}
-		ui.TaskChangedEvent.Send(tm)
+		ui.TaskChangedEvent.Send(wo.Tm)
 	}()
 	ui.Batch(
 		ui.ClipChangedEvent.With(nil),
-		ui.TaskChangedEvent.With(tm),
+		ui.TaskChangedEvent.With(wo.Tm),
 	)
 }
 

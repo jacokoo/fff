@@ -68,6 +68,9 @@ const (
 	// TaskChangedEvent Data: TaskManager
 	TaskChangedEvent
 
+	// ToggleTaskDetailEvent Data: bool
+	ToggleTaskDetailEvent
+
 	// ShowHelpEvent Data: bool
 	ShowHelpEvent
 
@@ -295,8 +298,7 @@ func init() {
 			if len(ui.Clip.items) == 0 {
 				return
 			}
-			show := data.(bool)
-			if show {
+			if data.(bool) {
 				ui.Clip.Open()
 			} else {
 				ui.Clip.Close()
@@ -311,13 +313,26 @@ func init() {
 
 		TaskChangedEvent: func(data interface{}) {
 			tm := data.(*model.TaskManager)
-			m := ""
-
-			for _, v := range tm.Tasks {
-				m = fmt.Sprintf("%s[%s %d/%d]", m, v.Name(), v.Current()+1, v.Count())
+			ui.tasks.SetData(tm.Tasks)
+			if len(tm.Tasks) == 0 && ui.tasks.showDetail {
+				ui.tasks.Close()
 			}
-			ui.tasks.Data = m
 			Redraw(ui.headerRight)
+			if ui.tasks.showDetail {
+				ui.tasks.Close()
+				ui.tasks.Open()
+			}
+		},
+
+		ToggleTaskDetailEvent: func(data interface{}) {
+			if len(ui.tasks.items) == 0 {
+				return
+			}
+			if data.(bool) {
+				ui.tasks.Open()
+			} else {
+				ui.tasks.Close()
+			}
 		},
 
 		ShowHelpEvent: func(data interface{}) {

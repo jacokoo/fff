@@ -5,13 +5,45 @@ var (
 	_ = Task(new(DefaultTask))
 )
 
+// ProgressListener listener for progresser
+type ProgressListener interface {
+	Notify(int)
+	End()
+}
+
+type plistener struct {
+	notifier func(int)
+	end      func()
+}
+
+func (p *plistener) Notify(progress int) {
+	if p.notifier != nil {
+		p.notifier(progress)
+	}
+}
+
+func (p *plistener) End() {
+	if p.end != nil {
+		p.end()
+	}
+}
+
+// NewListener create listener
+func NewListener(notifier func(int), end func()) ProgressListener {
+	return &plistener{notifier, end}
+}
+
+// Remover remove something from something
+type Remover interface {
+	Remove()
+}
+
 // Progresser a progress notifier
 type Progresser interface {
 	Count() int
 	Current() int
 	Progress(int)
-	Attach(chan<- int)
-	Detach(chan<- int)
+	Attach(ProgressListener) Remover
 	End()
 }
 
@@ -19,7 +51,7 @@ type Progresser interface {
 type DefaultProgresser struct {
 	count     int
 	progress  int
-	listeners []chan<- int
+	listeners []ProgressListener
 }
 
 // Count progress count
@@ -36,18 +68,28 @@ func (dp *DefaultProgresser) Current() int {
 func (dp *DefaultProgresser) Progress(c int) {
 	dp.progress = c
 	for _, v := range dp.listeners {
-		v <- c
+		v.Notify(c)
 	}
 }
 
-// Attach attach notifier
-func (dp *DefaultProgresser) Attach(listener chan<- int) {
-	dp.listeners = append(dp.listeners, listener)
+type actionRemover struct {
+	action func()
 }
 
-// Detach attach notifier
-func (dp *DefaultProgresser) Detach(listener chan<- int) {
-	ls := make([]chan<- int, 0)
+func (a *actionRemover) Remove() {
+	a.action()
+}
+
+// Attach attach notifier
+func (dp *DefaultProgresser) Attach(listener ProgressListener) Remover {
+	dp.listeners = append(dp.listeners, listener)
+	return &actionRemover{func() {
+		dp.detach(listener)
+	}}
+}
+
+func (dp *DefaultProgresser) detach(listener ProgressListener) {
+	ls := make([]ProgressListener, 0)
 	for _, v := range dp.listeners {
 		if v != listener {
 			continue
@@ -60,7 +102,7 @@ func (dp *DefaultProgresser) Detach(listener chan<- int) {
 // End close all listeners
 func (dp *DefaultProgresser) End() {
 	for _, v := range dp.listeners {
-		close(v)
+		v.End()
 	}
 	dp.listeners = nil
 }
@@ -140,20 +182,19 @@ func (bt *DefaultBatchTask) Start(quit <-chan bool, err chan<- error) {
 
 	for i, t := range bt.tasks {
 		qt := make(chan bool)
-		prog := make(chan int)
 		err1 := make(chan error)
-		bt.progress = i
+		bt.Progress(i)
+		finished := make(chan bool)
 
-		t.Attach(prog)
+		t.Attach(NewListener(func(pp int) {
+			bt.Progress(i)
+		}, func() {
+			finished <- true
+		}))
 		go t.Start(qt, err1)
 	progress:
 		for {
 			select {
-			case _, ok := <-prog:
-				if !ok {
-					break progress
-				}
-				bt.Progress(i)
 			case e, ok := <-err1:
 				if !ok {
 					break progress
@@ -162,6 +203,8 @@ func (bt *DefaultBatchTask) Start(quit <-chan bool, err chan<- error) {
 			case <-quit:
 				qt <- true
 				return
+			case <-finished:
+				break progress
 			}
 		}
 	}
@@ -178,36 +221,24 @@ func NewTaskManager() *TaskManager {
 	return &TaskManager{nil, make(map[Task]chan bool)}
 }
 
-func (tm *TaskManager) waitIt(task Task, ch chan int, message chan string) {
-	defer close(message)
-
-	for {
-		_, ok := <-ch
-		if !ok {
-			ts := make([]Task, 0)
-			for _, v := range tm.Tasks {
-				if v != task {
-					ts = append(ts, v)
-				}
-			}
-			tm.Tasks = ts
-			delete(tm.quits, task)
-			task.Detach(ch)
-			return
-		}
-	}
-}
-
 // Submit a task to execute
 func (tm *TaskManager) Submit(task Task) <-chan string {
 	tm.Tasks = append(tm.Tasks, task)
 	quit := make(chan bool)
-	complete := make(chan int)
 	err := make(chan error)
 	message := make(chan string)
-	task.Attach(complete)
+	task.Attach(NewListener(nil, func() {
+		close(message)
+		ts := make([]Task, 0)
+		for _, v := range tm.Tasks {
+			if v != task {
+				ts = append(ts, v)
+			}
+		}
+		tm.Tasks = ts
+		delete(tm.quits, task)
+	}))
 
-	go tm.waitIt(task, complete, message)
 	go task.Start(quit, err)
 	go func() {
 		for v := range err {

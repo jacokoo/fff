@@ -169,6 +169,8 @@ var (
 		"ActionCloseClipDetail":    limit(ModeClip, func() { ac.closeClipDetail() }),
 		"ActionDeleteClipOnce":     limit(ModeClip, func() { enterJumpMode(jumpDeleteClip) }),
 		"ActionDeleteClip":         limit(ModeClip, func() { enterJumpMode(cjumpDeleteClip) }),
+		"ActionShowTaskDetail":     limit(ModeNormal, func() { ac.showTaskDetail() }),
+		"ActionCloseTaskDetail":    limit(ModeNormal, func() { ac.closeTaskDetail() }),
 
 		"ActionDeleteFile": limit(ModeNormal, func() {
 			s := ac.deletePrompt()
