@@ -54,7 +54,7 @@ func (cs CopySource) CopyTask(op Operator, target string) (Task, bool) {
 		})
 	}
 
-	return NewBatchTask("Copying", tasks), true
+	return NewBatchTask("Copy", tasks), true
 }
 
 // MoveTo move copy souce items to target

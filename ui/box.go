@@ -92,6 +92,6 @@ func (b *Box) draw() *Point {
 // Draw it
 func (b *Box) Draw() *Point {
 	b.draw()
-	b.Clear()
+	b.Clear() // clear to clear the background of the box
 	return b.draw()
 }

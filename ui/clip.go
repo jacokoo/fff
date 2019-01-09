@@ -27,6 +27,7 @@ func NewClip(p *Point, height int) *Clip {
 // Draw it
 func (c *Clip) Draw() *Point {
 	if len(c.items) == 0 {
+		c.End = c.Start
 		return c.End
 	}
 	return c.Text.Draw()

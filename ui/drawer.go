@@ -24,6 +24,12 @@ func Move(d Drawer, p *Point) *Point {
 	return d.Draw()
 }
 
+// Redraw clear it and draw again
+func Redraw(d Drawer) *Point {
+	d.Clear()
+	return d.Draw()
+}
+
 func measure(d Drawer) (int, int) {
 	w, _ := termbox.Size()
 	p := &Point{w + 1, 0}

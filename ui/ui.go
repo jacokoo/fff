@@ -87,9 +87,7 @@ func initFiles(showBookmark bool, g model.Group) {
 
 func createUI(wo *model.Workspace) {
 	w, h := termbox.Size()
-	ui.headerLeft = NewFlowLayout(ZeroPoint.Down(), func(p *Point) *Point {
-		return p.Right()
-	})
+	ui.headerLeft = NewFlowLayout(ZeroPoint.Down(), nil)
 
 	names := make([]string, len(wo.Groups))
 	for i := range wo.Groups {
@@ -105,9 +103,7 @@ func createUI(wo *model.Workspace) {
 	ui.Bookmark = NewBookmark(ZeroPoint, h-4, wo.Bookmark.Names)
 	initFiles(wo.IsShowBookmark(), wo.CurrentGroup())
 
-	ui.headerRight = NewRightAlignFlowLayout(ZeroPoint.Down().RightN(w), func(p *Point) *Point {
-		return p.Right()
-	})
+	ui.headerRight = NewRightAlignFlowLayout(ZeroPoint.Down().RightN(w), nil)
 	ui.helpMark = NewText(ZeroPoint, "[?]")
 	ui.tasks = NewText(ZeroPoint, "")
 	ui.headerRight.Append(ui.tasks, ui.helpMark)
@@ -151,8 +147,8 @@ func redraw() {
 	ui.StatusMessage.Restore().Set(0, "")
 }
 
-// Redraw ui
-func Redraw() {
+// Redraw redraw ui
+func (*UI) Redraw() {
 	redraw()
 	termbox.Flush()
 	go startEventLoop()

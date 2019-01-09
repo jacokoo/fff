@@ -153,9 +153,3 @@ func (c *Column) Shift(keepFirst bool) {
 	its = append(its, c.items[idx:]...)
 	c.items = its
 }
-
-// Redraw re-draw
-func (c *Column) Redraw() {
-	c.Clear()
-	c.Draw()
-}

@@ -124,7 +124,7 @@ func init() {
 
 		changeCurrent: func(data interface{}) {
 			ui.Path.SetValue(data.(string))
-			ui.headerLeft.DoLayout()
+			Redraw(ui.headerLeft)
 		},
 
 		ChangeGroupEvent: func(data interface{}) {
@@ -136,29 +136,26 @@ func init() {
 
 		ColumnContentChangeEvent: func(data interface{}) {
 			co := ui.Column.Last()
-			co.Clear()
 			co.item.(*FileList).setData(data.(model.Column))
 			co.showLine = !data.(model.Column).IsShowDetail()
-			co.Draw()
+			Redraw(co)
 			ui.Column.resetIndicator()
 		},
 
 		ToggleDetailEvent: func(data interface{}) {
 			mco := data.(model.Column)
 			co := ui.Column.Last()
-			co.Clear()
 			co.item.(*FileList).setData(mco)
 			co.showLine = !mco.IsShowDetail()
-			co.Draw()
+			Redraw(co)
 			ui.Column.resetIndicator()
 		},
 
 		ChangeSelectEvent: func(data interface{}) {
 			mco := data.(model.Column)
 			co := ui.Column.Last()
-			co.Clear()
 			co.item.(*FileList).setCurrent(mco.Current())
-			co.Draw()
+			Redraw(co)
 			setFileInfo(mco)
 		},
 
@@ -194,16 +191,14 @@ func init() {
 		ToParentEvent: func(data interface{}) {
 			co := ui.Column.Last()
 			mco := data.(model.Column)
-			co.Clear()
 			co.item.(*FileList).setData(mco)
-			co.Draw()
+			Redraw(co)
 			changeCurrent.dispatch(mco.Path())
 		},
 
 		ShiftEvent: func(data interface{}) {
-			ui.Column.Clear()
 			ui.Column.Shift(ui.isShowBookmark())
-			ui.Column.Draw()
+			Redraw(ui.Column)
 		},
 
 		JumpToEvent: func(data interface{}) {
@@ -217,14 +212,13 @@ func init() {
 		},
 
 		ToggleBookmarkEvent: func(data interface{}) {
-			ui.Column.Clear()
 			if data.(bool) {
 				its := []*ColumnItem{ui.bkColumn}
 				ui.Column.items = append(its, ui.Column.items...)
 			} else {
 				ui.Column.items = ui.Column.items[1:]
 			}
-			ui.Column.Draw()
+			Redraw(ui.Column)
 		},
 
 		InputChangeEvent: func(data interface{}) {
@@ -245,10 +239,9 @@ func init() {
 		},
 
 		BookmarkChangedEvent: func(data interface{}) {
-			ui.Column.Clear()
 			bk := data.(*model.Bookmark)
 			ui.Bookmark.SetData(bk.Names)
-			ui.Column.Draw()
+			Redraw(ui.Column)
 		},
 
 		JumpRefreshEvent: func(data interface{}) {
@@ -279,14 +272,18 @@ func init() {
 			ui.Clip.Clear()
 			if data == nil || len(data.(model.CopySource)) == 0 {
 				ui.Clip.SetData(nil)
-			} else {
-				items := make([]string, 0)
-				cs := data.(model.CopySource)
-				for _, v := range cs {
-					items = append(items, fmt.Sprintf("  %s", v.Path()))
+				if ui.Clip.showDetail {
+					ui.Clip.Close()
 				}
-				ui.Clip.SetData(items)
+				return
 			}
+
+			items := make([]string, 0)
+			cs := data.(model.CopySource)
+			for _, v := range cs {
+				items = append(items, fmt.Sprintf("  %s", v.Path()))
+			}
+			ui.Clip.SetData(items)
 			ui.Clip.Draw()
 			if ui.Clip.showDetail {
 				ui.Clip.Close()
@@ -313,9 +310,6 @@ func init() {
 		},
 
 		TaskChangedEvent: func(data interface{}) {
-			if ui.tasks.Data != "" {
-				ui.tasks.Clear()
-			}
 			tm := data.(*model.TaskManager)
 			m := ""
 
@@ -323,7 +317,7 @@ func init() {
 				m = fmt.Sprintf("%s[%s %d/%d]", m, v.Name(), v.Current()+1, v.Count())
 			}
 			ui.tasks.Data = m
-			Move(ui.tasks, ui.helpMark.Start.Left())
+			Redraw(ui.headerRight)
 		},
 
 		ShowHelpEvent: func(data interface{}) {

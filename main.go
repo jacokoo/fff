@@ -45,7 +45,7 @@ func start(redraw bool) {
 	maxColumns = w/columnWidth + 1
 
 	if redraw {
-		ui.Redraw()
+		gui.Redraw()
 	} else {
 		gui = ui.Start(wo)
 	}

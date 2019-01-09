@@ -9,9 +9,7 @@ type Tab struct {
 
 // NewTab create tab
 func NewTab(p *Point, name string, names []string) *Tab {
-	dl := NewFlowLayout(ZeroPoint, func(pp *Point) *Point {
-		return pp.Right()
-	})
+	dl := NewFlowLayout(ZeroPoint, nil)
 	for i, v := range names {
 		t := NewText(ZeroPoint, v)
 		if i == 0 {
@@ -34,13 +32,10 @@ func (t *Tab) SwitchTo(selected int) *Point {
 	t2 := t.names.Drawers[selected].(*Text)
 	t.Current = selected
 
-	t1.Clear()
-	t2.Clear()
-
 	t1.Color = colorNormal()
 	t2.Color = colorTab()
-	t1.Draw()
-	t2.Draw()
+	Redraw(t1)
+	Redraw(t2)
 
 	return t.Keyed.End
 }

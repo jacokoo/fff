@@ -25,7 +25,7 @@ func pathItems(path string) []string {
 }
 
 func createPathItems(items []string) (*FlowLayout, []*Text) {
-	ds := NewFlowLayout(ZeroPoint, func(p *Point) *Point { return p.RightN(1) })
+	ds := NewFlowLayout(ZeroPoint, nil)
 	its := make([]*Text, 0, len(items))
 
 	t := NewText(ZeroPoint, items[0])
