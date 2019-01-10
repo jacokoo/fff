@@ -3,13 +3,24 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jacokoo/fff/model"
 	"github.com/jacokoo/fff/ui"
 )
 
-type action struct {
-	taskListeners []model.ProgressListener
+type action struct{}
+
+func newAction() *action {
+	wo.Tm.Attach(model.NewTaskListener(nil, func(t model.Task) {
+		if wo.IsShowTaskDetail() && len(wo.Tm.Tasks) == 0 {
+			wo.ShowTaskDetail(false)
+		}
+		ui.TaskChangedEvent.Send(wo.Tm)
+	}, func(t model.Task) {
+		ui.TaskChangedEvent.Send(wo.Tm)
+	}))
+	return new(action)
 }
 
 func (w *action) sort(order model.Order) {
@@ -422,6 +433,28 @@ func (w *action) closeTaskDetail() {
 	ui.ToggleTaskDetailEvent.Send(false)
 }
 
+func (w *action) fakeTask() {
+	fn := func(progress chan<- int, quit <-chan bool, err chan<- error) {
+		defer close(err)
+		defer close(progress)
+		i := 0
+		for i <= 100 {
+			select {
+			case <-quit:
+				return
+			case <-time.After(20 * time.Millisecond):
+				progress <- i
+				i++
+			}
+		}
+	}
+	t1 := model.NewTask("T1", fn)
+	t2 := model.NewTask("T2", fn)
+
+	t := model.NewBatchTask("Batch", []model.Task{t1, t2})
+	wo.Tm.Submit(t)
+}
+
 func (w *action) copyFile() {
 	if wo.Clip == nil {
 		ui.MessageEvent.Send("No clipped files")
@@ -436,16 +469,11 @@ func (w *action) copyFile() {
 		return
 	}
 
-	task.Attach(model.NewListener(func(progress int) {
-		ui.TaskChangedEvent.Send(wo.Tm)
-	}, nil))
-
 	msg := wo.Tm.Submit(task)
 	go func() {
 		for v := range msg {
 			ui.MessageEvent.Send(v)
 		}
-		ui.TaskChangedEvent.Send(wo.Tm)
 	}()
 	ui.Batch(
 		ui.ClipChangedEvent.With(nil),

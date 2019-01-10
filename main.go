@@ -23,8 +23,8 @@ var (
 	wd, _     = os.Getwd()
 	quit      = make(chan int)
 	cfg       = initConfig()
-	ac        = new(action)
 
+	ac         *action
 	wo         *model.Workspace
 	command    *exec.Cmd
 	maxColumns int
@@ -124,6 +124,7 @@ func main() {
 
 	checkWd()
 	wo = model.NewWorkspace(maxGroups, wd, configDir)
+	ac = newAction()
 
 	go start(false)
 	for {

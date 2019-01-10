@@ -40,6 +40,6 @@ func (pb *ProgressBar) Draw() *Point {
 		termbox.SetCell(pb.Start.X+start+i, pb.Start.Y, v, c.FG, c.BG)
 	}
 
-	pb.End = pb.Start.RightN(pb.Width - 1)
+	pb.End = pb.Start.RightN(pb.Width)
 	return pb.End
 }

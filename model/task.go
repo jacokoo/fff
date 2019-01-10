@@ -177,8 +177,8 @@ func (bt *DefaultBatchTask) CurrentTask() Task {
 
 // Start task one by one
 func (bt *DefaultBatchTask) Start(quit <-chan bool, err chan<- error) {
-	defer close(err)
 	defer bt.End()
+	defer close(err)
 
 	for i, t := range bt.tasks {
 		qt := make(chan bool)
@@ -210,15 +210,50 @@ func (bt *DefaultBatchTask) Start(quit <-chan bool, err chan<- error) {
 	}
 }
 
+// TaskListener listener for task manager
+type TaskListener interface {
+	Submitted(Task)
+	Finished(Task)
+	Progress(Task)
+}
+
+type tlistener struct {
+	submitted func(Task)
+	finised   func(Task)
+	progress  func(Task)
+}
+
+// NewTaskListener create task listener
+func NewTaskListener(submitted, finished, progress func(Task)) TaskListener {
+	return &tlistener{submitted, finished, progress}
+}
+
+func (t *tlistener) Submitted(tt Task) {
+	if t.submitted != nil {
+		t.submitted(tt)
+	}
+}
+func (t *tlistener) Finished(tt Task) {
+	if t.finised != nil {
+		t.finised(tt)
+	}
+}
+func (t *tlistener) Progress(tt Task) {
+	if t.progress != nil {
+		t.progress(tt)
+	}
+}
+
 // TaskManager manage tasks
 type TaskManager struct {
-	Tasks []Task
-	quits map[Task]chan bool
+	Tasks     []Task
+	quits     map[Task]chan bool
+	listeners []TaskListener
 }
 
 // NewTaskManager create task manager
 func NewTaskManager() *TaskManager {
-	return &TaskManager{nil, make(map[Task]chan bool)}
+	return &TaskManager{nil, make(map[Task]chan bool), nil}
 }
 
 // Submit a task to execute
@@ -227,7 +262,14 @@ func (tm *TaskManager) Submit(task Task) <-chan string {
 	quit := make(chan bool)
 	err := make(chan error)
 	message := make(chan string)
-	task.Attach(NewListener(nil, func() {
+	for _, v := range tm.listeners {
+		v.Submitted(task)
+	}
+	task.Attach(NewListener(func(p int) {
+		for _, v := range tm.listeners {
+			v.Progress(task)
+		}
+	}, func() {
 		close(message)
 		ts := make([]Task, 0)
 		for _, v := range tm.Tasks {
@@ -237,6 +279,9 @@ func (tm *TaskManager) Submit(task Task) <-chan string {
 		}
 		tm.Tasks = ts
 		delete(tm.quits, task)
+		for _, v := range tm.listeners {
+			v.Finished(task)
+		}
 	}))
 
 	go task.Start(quit, err)
@@ -248,4 +293,18 @@ func (tm *TaskManager) Submit(task Task) <-chan string {
 
 	tm.quits[task] = quit
 	return message
+}
+
+// Attach listener
+func (tm *TaskManager) Attach(tl TaskListener) Remover {
+	tm.listeners = append(tm.listeners, tl)
+	return &actionRemover{func() {
+		ls := make([]TaskListener, 0)
+		for _, v := range tm.listeners {
+			if v != tl {
+				ls = append(ls, v)
+			}
+		}
+		tm.listeners = ls
+	}}
 }

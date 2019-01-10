@@ -284,7 +284,7 @@ func init() {
 			items := make([]string, 0)
 			cs := data.(model.CopySource)
 			for _, v := range cs {
-				items = append(items, fmt.Sprintf("  %s", v.Path()))
+				items = append(items, fmt.Sprintf("  %s  ", v.Path()))
 			}
 			ui.Clip.SetData(items)
 			ui.Clip.Draw()

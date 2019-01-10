@@ -19,24 +19,67 @@ const (
 type Box struct {
 	singleLine bool
 	item       Drawer
+	padding    []int
 	*Drawable
 }
 
 // NewBox create single line box
-func NewBox(p *Point, item Drawer) *Box {
-	return &Box{true, item, NewDrawable(p)}
+func NewBox(p *Point, item Drawer, padding ...int) *Box {
+	return &Box{true, item, padding, NewDrawable(p)}
 }
 
 // NewDBox create double line box
-func NewDBox(p *Point, item Drawer) *Box {
-	return &Box{false, item, NewDrawable(p)}
+func NewDBox(p *Point, item Drawer, padding ...int) *Box {
+	return &Box{false, item, padding, NewDrawable(p)}
+}
+
+func (b *Box) ptop() int {
+	if len(b.padding) == 0 {
+		return 0
+	}
+	return b.padding[0]
+}
+
+func (b *Box) pright() int {
+	l := len(b.padding)
+	if l == 1 {
+		return b.padding[0]
+	}
+	if l > 1 {
+		return b.padding[1]
+	}
+	return 0
+}
+func (b *Box) pbottom() int {
+	l := len(b.padding)
+	if l == 1 {
+		return b.padding[0]
+	}
+	if l > 2 {
+		return b.padding[2]
+	}
+	return 0
+}
+
+func (b *Box) pleft() int {
+	l := len(b.padding)
+	if l == 1 {
+		return b.padding[0]
+	}
+	if l == 3 {
+		return b.padding[1]
+	}
+	if l == 4 {
+		return b.padding[3]
+	}
+	return 0
 }
 
 // Draw it
 func (b *Box) draw() *Point {
-	p := b.Start.Right().MoveDown()
+	p := b.Start.RightN(b.pleft() + 1).MoveDownN(b.ptop() + 1)
 	p = Move(b.item, p)
-	br := p.RightN(3).MoveDown()
+	br := p.RightN(b.pright() + 1).MoveDownN(b.pbottom() + 1)
 	bl := &Point{b.Start.X, br.Y}
 	tl := b.Start
 	tr := &Point{br.X, b.Start.Y}

@@ -52,7 +52,7 @@ func NewBatchTaskItem(p *Point, max, width int) *BatchTaskItem {
 // Draw it
 func (bt *BatchTaskItem) Draw() *Point {
 	p := Move(bt.task, bt.Start)
-	Move(bt.progress, p.Up())
+	Move(bt.progress, p.Up().MoveLeftN(len(bt.progress.Data)-1))
 	bt.End = p
 	return bt.End
 }
@@ -109,8 +109,10 @@ type Task struct {
 
 // NewTask create task
 func NewTask(p *Point) *Task {
-	vl := NewVerticalLayout(p, nil, nil)
-	box := NewDBox(p, vl)
+	vl := NewVerticalLayout(p, func(p *Point) *Point {
+		return p.Down()
+	})
+	box := NewDBox(p, vl, 1)
 	return &Task{false, new(pool), nil, vl, NewPopup(p, box), NewText(p, "")}
 }
 
@@ -118,7 +120,7 @@ func NewTask(p *Point) *Task {
 func (t *Task) Open() {
 	t.showDetail = true
 	p := t.End.Down()
-	p.X -= taskDetailWidth
+	p.X -= taskDetailWidth + 4
 	Move(t.popup, p)
 }
 
@@ -140,8 +142,9 @@ func (t *Task) SetData(ts []model.Task) {
 		switch vv := v.(type) {
 		case model.BatchTask:
 			bb := t.pool.getBatchTask()
+			bb.max = vv.Count()
 			ct := vv.CurrentTask()
-			bb.SetData(vv.Name(), vv.Count(), ct.Name(), ct.Current())
+			bb.SetData(vv.Name(), vv.Current()+1, ct.Name(), ct.Current())
 			ss[i] = bb
 		case model.Task:
 			bb := t.pool.getTask()
