@@ -84,17 +84,22 @@ const (
 type Event struct {
 	Type EventType
 	Data interface{}
+	Wait bool
 }
 
 // Send event
 func (et EventType) Send(data interface{}) {
-	ev := Event{et, data}
+	ev := Event{et, data, true}
 	Gui <- ev
+
+	// jump feature need to wait until ui render finished to get the item position
+	// maybe it should change a way to implement jump
+	<-GuiAck
 }
 
 // With create Event
 func (et EventType) With(data interface{}) Event {
-	return Event{et, data}
+	return Event{et, data, false}
 }
 
 func (et EventType) dispatch(data interface{}) {
@@ -313,25 +318,31 @@ func init() {
 
 		TaskChangedEvent: func(data interface{}) {
 			tm := data.(*model.TaskManager)
-			ui.tasks.SetData(tm.Tasks)
-			if len(tm.Tasks) == 0 && ui.tasks.showDetail {
-				ui.tasks.Close()
+			ui.Task.SetData(tm.Tasks)
+			if len(tm.Tasks) == 0 && ui.Task.showDetail {
+				ui.Task.Close()
 			}
 			Redraw(ui.headerRight)
-			if ui.tasks.showDetail {
-				ui.tasks.Close()
-				ui.tasks.Open()
+			if ui.Task.showDetail {
+				ui.Task.Close()
+				ui.Task.Open()
+
+				if ui.jumpItems != nil {
+					for _, v := range ui.jumpItems {
+						v.Draw()
+					}
+				}
 			}
 		},
 
 		ToggleTaskDetailEvent: func(data interface{}) {
-			if len(ui.tasks.items) == 0 {
+			if len(ui.Task.items) == 0 {
 				return
 			}
 			if data.(bool) {
-				ui.tasks.Open()
+				ui.Task.Open()
 			} else {
-				ui.tasks.Close()
+				ui.Task.Close()
 			}
 		},
 
@@ -354,7 +365,7 @@ func startEventLoop() {
 		case ev := <-Gui:
 			dispatch(ev.Type, ev.Data)
 			termbox.Flush()
-			if GuiNeedAck {
+			if ev.Wait {
 				GuiAck <- true
 			}
 		case <-GuiQuit:

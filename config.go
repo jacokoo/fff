@@ -92,6 +92,10 @@ binding:
   clip:
     "w": ActionDeleteClipOnce             # Jump to delete clip once
     "W": ActionDeleteClip                 # Jump to delete clip
+  
+  task:
+    "w": ActionCancelTaskOnce             # Jump to cancel task once
+    "W": ActionCancelTask                 # Jump to cancel task
 
 color:
   normal: default
@@ -129,6 +133,7 @@ type config struct {
 	jumpKbds   []*cmd
 	inputKbds  []*cmd
 	clipKbds   []*cmd
+	taskKbds   []*cmd
 	colors     map[string]*ui.Color
 	editor     string
 	shell      string
@@ -219,11 +224,13 @@ func readBindings(ds interface{}, cfg *config) {
 	cfg.jumpKbds = append(all, cfg.jumpKbds...)
 	cfg.inputKbds = append(all, cfg.inputKbds...)
 	cfg.clipKbds = append(all, cfg.clipKbds...)
+	cfg.taskKbds = append(all, cfg.taskKbds...)
 
 	cfg.normalKbds = append(readBinding(dd["normal"]), cfg.normalKbds...)
 	cfg.jumpKbds = append(readBinding(dd["jump"]), cfg.jumpKbds...)
 	cfg.inputKbds = append(readBinding(dd["input"]), cfg.inputKbds...)
 	cfg.clipKbds = append(readBinding(dd["clip"]), cfg.clipKbds...)
+	cfg.taskKbds = append(readBinding(dd["task"]), cfg.taskKbds...)
 }
 
 func readYaml(ds []byte, cfg *config) {

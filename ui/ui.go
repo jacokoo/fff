@@ -17,9 +17,6 @@ var (
 	// GuiAck gui render finish ack
 	GuiAck = make(chan bool)
 
-	// GuiNeedAck if need ack
-	GuiNeedAck = false
-
 	listeners = make(map[EventType]func(interface{}))
 	ui        = new(UI)
 )
@@ -31,7 +28,7 @@ type UI struct {
 	Clip       *Clip
 	headerLeft *FlowLayout
 
-	tasks       *Task
+	Task        *Task
 	helpMark    *Text
 	headerRight *RightAlignFlowLayout
 
@@ -105,8 +102,8 @@ func createUI(wo *model.Workspace) {
 
 	ui.headerRight = NewRightAlignFlowLayout(ZeroPoint.Down().RightN(w), nil)
 	ui.helpMark = NewText(ZeroPoint, "[?]")
-	ui.tasks = NewTask(ZeroPoint)
-	ui.headerRight.Append(ui.tasks, ui.helpMark)
+	ui.Task = NewTask(ZeroPoint)
+	ui.headerRight.Append(ui.Task, ui.helpMark)
 	ui.headerRight.Draw()
 
 	ui.Status = NewStatus(&Point{0, h - 1}, w)
@@ -142,7 +139,7 @@ func redraw() {
 	ui.Path.Draw()
 	ui.Clip.Draw()
 	ui.helpMark.Draw()
-	ui.tasks.Draw()
+	ui.Task.Draw()
 	ui.Column.Draw()
 	ui.StatusMessage.Restore().Set(0, "")
 }

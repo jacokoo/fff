@@ -110,3 +110,23 @@ func (fl *List) JumpItems(namefn func(int) string, fn func(int) func() bool) []*
 	}
 	return re
 }
+
+// JumpItems for cancel task
+func (t *Task) JumpItems(fn func(int) func() bool) []*JumpItem {
+	re := make([]*JumpItem, 0)
+	if len(t.items) == 0 {
+		return re
+	}
+
+	for i, v := range t.items {
+		var s *Point
+		switch vv := v.(type) {
+		case *TaskItem:
+			s = vv.Start
+		case *BatchTaskItem:
+			s = vv.Start
+		}
+		re = append(re, &JumpItem{[]rune("--"), fn(i), s.Left()})
+	}
+	return re
+}

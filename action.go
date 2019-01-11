@@ -16,6 +16,13 @@ func newAction() *action {
 		if wo.IsShowTaskDetail() && len(wo.Tm.Tasks) == 0 {
 			wo.ShowTaskDetail(false)
 		}
+		if mode == ModeJump || mode == ModeDisabled {
+			quitJumpMode()
+		}
+
+		if len(wo.Tm.Tasks) == 0 && mode == ModeTask {
+			changeMode(ModeNormal)
+		}
 		ui.TaskChangedEvent.Send(wo.Tm)
 	}, func(t model.Task) {
 		ui.TaskChangedEvent.Send(wo.Tm)
@@ -434,6 +441,7 @@ func (w *action) showTaskDetail() {
 	}
 
 	wo.ShowTaskDetail(true)
+	changeMode(ModeTask)
 	ui.ToggleTaskDetailEvent.Send(true)
 }
 
@@ -443,6 +451,7 @@ func (w *action) closeTaskDetail() {
 	}
 
 	wo.ShowTaskDetail(false)
+	changeMode(ModeNormal)
 	ui.ToggleTaskDetailEvent.Send(false)
 }
 
@@ -455,7 +464,7 @@ func (w *action) fakeTask() {
 			select {
 			case <-quit:
 				return
-			case <-time.After(20 * time.Millisecond):
+			case <-time.After(50 * time.Millisecond):
 				progress <- i
 				i++
 			}

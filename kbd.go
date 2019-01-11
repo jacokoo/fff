@@ -21,6 +21,7 @@ const (
 	ModeInput
 	ModeHelp
 	ModeClip
+	ModeTask
 	ModeDisabled
 )
 
@@ -171,7 +172,9 @@ var (
 		"ActionDeleteClipOnce":     limit(ModeClip, func() { enterJumpMode(jumpDeleteClip) }),
 		"ActionDeleteClip":         limit(ModeClip, func() { enterJumpMode(cjumpDeleteClip) }),
 		"ActionShowTaskDetail":     limit(ModeNormal, func() { ac.showTaskDetail() }),
-		"ActionCloseTaskDetail":    limit(ModeNormal, func() { ac.closeTaskDetail() }),
+		"ActionCloseTaskDetail":    limit(ModeTask, func() { ac.closeTaskDetail() }),
+		"ActionCancelTaskOnce":     limit(ModeTask, func() { enterJumpMode(jumpCancelTask) }),
+		"ActionCancelTask":         limit(ModeTask, func() { enterJumpMode(cjumpCancelTask) }),
 		"ActionFakeTask":           limit(ModeNormal, func() { ac.fakeTask() }),
 
 		"ActionDeleteFile": limit(ModeNormal, func() {
@@ -240,6 +243,8 @@ func restoreKbds() {
 		currentKbds = cfg.inputKbds
 	case ModeClip:
 		currentKbds = cfg.clipKbds
+	case ModeTask:
+		currentKbds = cfg.taskKbds
 	default:
 		currentKbds = nil
 	}
@@ -354,6 +359,12 @@ func kbdHandleClip(ev termbox.Event) {
 	}
 }
 
+func kbdHandleTask(ev termbox.Event) {
+	if !doAction(ev) {
+		ac.closeTaskDetail()
+	}
+}
+
 func handleKeyEvent() {
 	for {
 		select {
@@ -370,6 +381,8 @@ func handleKeyEvent() {
 				restoreKbds()
 			case ModeClip:
 				kbdHandleClip(ev)
+			case ModeTask:
+				kbdHandleTask(ev)
 			}
 		case <-kbdQuit:
 			return

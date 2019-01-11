@@ -154,6 +154,7 @@ func (dt *DefaultTask) Start(quit <-chan bool, err chan<- error) {
 			dt.Progress(p)
 		case <-quit:
 			qt <- true
+			close(qt)
 			return
 		}
 	}
@@ -202,6 +203,7 @@ func (bt *DefaultBatchTask) Start(quit <-chan bool, err chan<- error) {
 				err <- e
 			case <-quit:
 				qt <- true
+				close(qt)
 				return
 			case <-finished:
 				break progress
@@ -293,6 +295,14 @@ func (tm *TaskManager) Submit(task Task) <-chan string {
 
 	tm.quits[task] = quit
 	return message
+}
+
+// Cancel task
+func (tm *TaskManager) Cancel(task Task) {
+	if quit, ok := tm.quits[task]; ok {
+		quit <- true
+		close(quit)
+	}
 }
 
 // Attach listener

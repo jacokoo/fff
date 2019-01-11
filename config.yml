@@ -76,6 +76,10 @@ binding:
   clip:
     "w": ActionDeleteClipOnce             # Jump to delete clip once
     "W": ActionDeleteClip                 # Jump to delete clip
+  
+  task:
+    "w": ActionCancelTaskOnce             # Jump to cancel task once
+    "W": ActionCancelTask                 # Jump to cancel task
 
 color:
   normal: default

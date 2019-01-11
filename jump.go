@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sync"
 	"unicode"
 
 	"github.com/jacokoo/fff/ui"
@@ -42,6 +43,8 @@ var (
 	cjumpCurrentDir     *JumpMode
 	jumpDeleteClip      *JumpMode
 	cjumpDeleteClip     *JumpMode
+	jumpCancelTask      *JumpMode
+	cjumpCancelTask     *JumpMode
 )
 
 var (
@@ -50,6 +53,7 @@ var (
 	jumpMode  *JumpMode
 	bkMode    Mode
 	jumpItems []*ui.JumpItem
+	mutex     = new(sync.Mutex)
 )
 
 func init() {
@@ -74,6 +78,18 @@ func init() {
 
 	jumpDeleteClip = &JumpMode{collectClip, nil}
 	cjumpDeleteClip = &JumpMode{collectClip, collectClip}
+
+	jumpCancelTask = &JumpMode{collectTask, nil}
+	cjumpCancelTask = &JumpMode{collectTask, collectTask}
+}
+
+func collectTask() []*ui.JumpItem {
+	return gui.Task.JumpItems(func(idx int) func() bool {
+		return func() bool {
+			wo.Tm.Cancel(wo.Tm.Tasks[idx])
+			return true
+		}
+	})
 }
 
 func collectClip() []*ui.JumpItem {
@@ -165,13 +181,8 @@ func collectCurrentPath() []*ui.JumpItem {
 }
 
 func handleJumpResult(item *ui.JumpItem) {
-	ui.GuiNeedAck = true
 	ui.JumpRefreshEvent.Send(nil)
-	<-ui.GuiAck
-
 	co := item.Action()
-	<-ui.GuiAck
-	ui.GuiNeedAck = false
 
 	if !co || !jumpMode.SupportContinuous() {
 		quitJumpMode()
@@ -241,6 +252,9 @@ func enterJumpMode(md *JumpMode) {
 }
 
 func quitJumpMode() {
+	mutex.Lock()
+	defer mutex.Unlock()
+
 	if mode != ModeJump && mode != ModeDisabled {
 		return
 	}
@@ -288,6 +302,13 @@ func keyThem(items []*ui.JumpItem) {
 		used[k] = uk
 		v.Key[1] = indexKey(uk)
 	}
+
+	if vv, ok := its['-']; ok && len(its) == 1 {
+		for _, v := range vv {
+			v.Key = []rune{v.Key[1]}
+		}
+	}
+
 	for _, v := range its {
 		if len(v) == 1 {
 			v[0].Key = []rune{v[0].Key[0]}
