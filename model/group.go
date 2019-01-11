@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"path/filepath"
+	"strings"
 )
 
 // CloseResult of Group.CloseDir
@@ -26,12 +27,21 @@ type Group interface {
 	CloseDir() CloseResult
 	JumpTo(colIdx, fileIdx int) bool
 	Refresh()
+	Record()
+	Restore()
 	Operator
+}
+
+type old struct {
+	from    string
+	to      string
+	current string
 }
 
 // LocalGroup local group
 type LocalGroup struct {
 	path    string
+	old     *old
 	columns []Column
 	Operator
 }
@@ -137,6 +147,42 @@ func (g *LocalGroup) Refresh() {
 	co.Refresh(g.path, fs)
 }
 
+// Record record current path for jump back
+func (g *LocalGroup) Record() {
+	from := g.columns[0].Path()
+	co := g.Current()
+	to := co.Path()
+	current := co.Files()[co.Current()].Name()
+	g.old = &old{from, to, current}
+}
+
+// Restore to previous status
+func (g *LocalGroup) Restore() {
+	if g.old == nil {
+		return
+	}
+	old := g.old
+	g.Record()
+	current := g.old
+	defer func() { g.old = current }()
+
+	if err := g.OpenRoot(old.from); err != nil {
+		return
+	}
+
+	sep := string(filepath.Separator)
+	ts1, ts2 := strings.Split(old.from, sep), strings.Split(old.to, sep)
+	for i := len(ts1); i < len(ts2); i++ {
+		if suc := g.Current().SelectByName(ts2[i]); !suc {
+			return
+		}
+		if err := g.OpenDir(); err != nil {
+			return
+		}
+	}
+	g.Current().SelectByName(old.current)
+}
+
 // NewLocalGroup create local group
 func NewLocalGroup(path string) (Group, error) {
 	op := &LocalOperator{}
@@ -145,5 +191,5 @@ func NewLocalGroup(path string) (Group, error) {
 		return nil, err
 	}
 	co := NewLocalColumn(path, fs)
-	return &LocalGroup{path, []Column{co}, op}, nil
+	return &LocalGroup{path, nil, []Column{co}, op}, nil
 }

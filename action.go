@@ -29,6 +29,11 @@ func (w *action) sort(order model.Order) {
 	ui.ColumnContentChangeEvent.Send(co)
 }
 
+func (w *action) goBack() {
+	wo.CurrentGroup().Restore()
+	ui.ChangeRootEvent.Send(wo.CurrentGroup())
+}
+
 func (w *action) toggleHidden() {
 	co := wo.CurrentGroup().Current()
 	co.ToggleHidden()
@@ -68,6 +73,8 @@ func (w *action) moveToLast() {
 
 func (w *action) openRight() {
 	gu := wo.CurrentGroup()
+	gu.Record()
+
 	err := gu.OpenDir()
 	if err != nil {
 		ui.MessageEvent.Send(err.Error())
@@ -77,12 +84,13 @@ func (w *action) openRight() {
 	if len(gu.Columns()) >= maxColumns {
 		gu.Shift()
 	}
-
 	ui.OpenRightEvent.Send(gu)
 }
 
 func (w *action) closeRight() {
 	gu := wo.CurrentGroup()
+	gu.Record()
+
 	switch re := gu.CloseDir(); re {
 	case model.CloseNothing:
 		return
@@ -95,6 +103,8 @@ func (w *action) closeRight() {
 
 func (w *action) shift() {
 	gu := wo.CurrentGroup()
+	gu.Record()
+
 	if gu.Shift() {
 		ui.ShiftEvent.Send(gu)
 	}
@@ -115,12 +125,15 @@ func (w *action) changeGroup(idx int) {
 }
 
 func (w *action) openRoot(path string) {
-	err := wo.CurrentGroup().OpenRoot(path)
+	gu := wo.CurrentGroup()
+	gu.Record()
+
+	err := gu.OpenRoot(path)
 	if err != nil {
 		ui.MessageEvent.Send("Can not read dir " + path)
 		return
 	}
-	ui.ChangeRootEvent.Send(wo.CurrentGroup())
+	ui.ChangeRootEvent.Send(gu)
 }
 
 func (w *action) jumpTo(colIdx, fileIdx int, openIt bool) bool {

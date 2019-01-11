@@ -72,6 +72,7 @@ binding:
     "e": ActionEdit                       # Run editor
     "v": ActionView                       # Run pager
     "?": ActionShowHelp                   # Show help
+    "-": ActionGoBack                     # Go back to previous dir
     "t":
       "c": ActionShowClipDetail           ; Show clip detail
       "t": ActionShowTaskDetail           ; Show task detail
