@@ -152,7 +152,10 @@ func (g *LocalGroup) Record() {
 	from := g.columns[0].Path()
 	co := g.Current()
 	to := co.Path()
-	current := co.Files()[co.Current()].Name()
+	current := ""
+	if fi, err := co.CurrentFile(); err == nil {
+		current = fi.Name()
+	}
 	g.old = &old{from, to, current}
 }
 
