@@ -277,9 +277,10 @@ func init() {
 		},
 
 		ClipChangedEvent: func(data interface{}) {
-			ui.Clip.Clear()
 			if data == nil || len(data.(model.CopySource)) == 0 {
 				ui.Clip.SetData(nil)
+				Redraw(ui.headerLeft)
+
 				if ui.Clip.showDetail {
 					ui.Clip.Close()
 				}
@@ -292,7 +293,8 @@ func init() {
 				items = append(items, fmt.Sprintf("  %s  ", v.Path()))
 			}
 			ui.Clip.SetData(items)
-			ui.Clip.Draw()
+			Redraw(ui.headerLeft)
+
 			if ui.Clip.showDetail {
 				ui.Clip.Close()
 				ui.Clip.Open()
