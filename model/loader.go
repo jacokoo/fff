@@ -24,6 +24,7 @@ func init() {
 	root := &dir{v, &defaultDirOp{&defaultOp{v}}}
 	local := &localLoader{root}
 	registerLoader(local)
+	registerLoader(new(zipLoader))
 }
 
 type localLoader struct {

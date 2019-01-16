@@ -44,7 +44,7 @@ func (do *defaultOp) Rename(name string) error {
 }
 
 func (do *defaultOp) Delete() error {
-	if do.IsDir() {
+	if !do.IsDir() {
 		return os.Remove(do.Path())
 	}
 
@@ -196,6 +196,20 @@ func (dd defaultDirOp) write(root string, item FileItem) ([]Task, error) {
 
 		for !quited {
 			n, err := r.Read(buf)
+			if n > 0 {
+				_, err = w.Write(buf[:n])
+				if err != nil {
+					eh <- err
+					return
+				}
+
+				count += int64(n)
+				pp := int(float64(count) / si * 100)
+				if pp > pg {
+					pg = pp
+					progress <- pg
+				}
+			}
 			if err == io.EOF {
 				break
 			}
@@ -203,19 +217,6 @@ func (dd defaultDirOp) write(root string, item FileItem) ([]Task, error) {
 			if err != nil {
 				eh <- err
 				return
-			}
-
-			_, err = w.Write(buf[:n])
-			if err != nil {
-				eh <- err
-				return
-			}
-
-			count += int64(n)
-			pp := int(float64(count) / si * 100)
-			if pp > pg {
-				pg = pp
-				progress <- pg
 			}
 		}
 	})}, nil

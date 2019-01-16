@@ -310,7 +310,8 @@ func (w *action) deleteFiles() {
 	for _, v := range files {
 		err := v.(model.Op).Delete()
 		if err != nil {
-			continue
+			ui.MessageEvent.Send(err.Error())
+			return
 		}
 
 		if v.IsDir() {

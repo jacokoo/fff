@@ -15,6 +15,7 @@ type FileItem interface {
 	Mode() os.FileMode
 	IsDir() bool
 	Link() (Link, bool)
+	Sys() interface{}
 }
 
 // Link symbolic link
