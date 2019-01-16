@@ -1,7 +1,7 @@
 package model
 
 import (
-	"errors"
+	"fmt"
 	"path/filepath"
 	"strings"
 )
@@ -26,10 +26,9 @@ type Group interface {
 	OpenRoot(root string) error
 	CloseDir() CloseResult
 	JumpTo(colIdx, fileIdx int) bool
-	Refresh()
+	Refresh() error
 	Record()
 	Restore()
-	Operator
 }
 
 type old struct {
@@ -43,7 +42,6 @@ type LocalGroup struct {
 	path    string
 	old     *old
 	columns []Column
-	Operator
 }
 
 // Path current path
@@ -78,7 +76,11 @@ func (g *LocalGroup) OpenDir() error {
 		return err
 	}
 	if !fi.IsDir() {
-		return errors.New("not a dir")
+		nfi, err := LoadFile(fi)
+		if err != nil {
+			return err
+		}
+		fi = nfi
 	}
 
 	co.ClearMark()
@@ -86,27 +88,29 @@ func (g *LocalGroup) OpenDir() error {
 		co.ToggleDetail()
 	}
 
-	pa := fi.Path()
-	items, err := g.ReadDir(pa)
+	cc, err := NewLocalColumn(fi)
 	if err != nil {
 		return err
 	}
 
-	cc := NewLocalColumn(pa, items)
-	g.path = pa
+	g.path = fi.Path()
 	g.columns = append(g.columns, cc)
 	return nil
 }
 
 // OpenRoot open path in first column
 func (g *LocalGroup) OpenRoot(root string) error {
-	items, err := g.ReadDir(root)
+	item, err := Load(root)
 	if err != nil {
 		return err
 	}
 
+	if !item.IsDir() {
+		return fmt.Errorf("path: %s is not a dir", root)
+	}
+
 	g.columns = g.columns[:1]
-	g.columns[0].Refresh(root, items)
+	g.columns[0].Refresh(item)
 	g.path = root
 	return nil
 }
@@ -141,10 +145,8 @@ func (g *LocalGroup) JumpTo(colIdx, fileIdx int) bool {
 }
 
 // Refresh current dirs
-func (g *LocalGroup) Refresh() {
-	co := g.Current()
-	fs, _ := g.ReadDir(g.path)
-	co.Refresh(g.path, fs)
+func (g *LocalGroup) Refresh() error {
+	return g.Current().Refresh(nil)
 }
 
 // Record record current path for jump back
@@ -188,11 +190,17 @@ func (g *LocalGroup) Restore() {
 
 // NewLocalGroup create local group
 func NewLocalGroup(path string) (Group, error) {
-	op := &LocalOperator{}
-	fs, err := op.ReadDir(path)
+	fi, err := Load(path)
 	if err != nil {
 		return nil, err
 	}
-	co := NewLocalColumn(path, fs)
-	return &LocalGroup{path, nil, []Column{co}, op}, nil
+	if !fi.IsDir() {
+		return nil, fmt.Errorf("path: %s is not dir", path)
+	}
+
+	co, err := NewLocalColumn(fi)
+	if err != nil {
+		return nil, err
+	}
+	return &LocalGroup{path, nil, []Column{co}}, nil
 }

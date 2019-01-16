@@ -202,18 +202,24 @@ func (w *action) clearFilter() {
 
 func (w *action) newFile(name string) {
 	g := wo.CurrentGroup()
-	if err := g.NewFile(g.Path(), name); err != nil {
+	co := g.Current()
+	op := co.File().(model.DirOp)
+
+	if err := op.NewFile(name); err != nil {
 		ui.MessageEvent.Send(err.Error())
 		return
 	}
 	g.Refresh()
-	g.Current().SelectByName(name)
-	ui.ColumnContentChangeEvent.Send(g.Current())
+	co.SelectByName(name)
+	ui.ColumnContentChangeEvent.Send(co)
 }
 
 func (w *action) newDir(name string) {
 	g := wo.CurrentGroup()
-	if err := g.NewDir(g.Path(), name); err != nil {
+	co := g.Current()
+	op := co.File().(model.DirOp)
+
+	if err := op.NewDir(name); err != nil {
 		ui.MessageEvent.Send(err.Error())
 		return
 	}
@@ -231,7 +237,7 @@ func (w *action) rename(name string) {
 		return
 	}
 
-	if err := g.Rename(g.Path(), fi.Name(), name); err != nil {
+	if err := fi.(model.Op).Rename(name); err != nil {
 		ui.MessageEvent.Send(fmt.Sprintf("Can not rename %s to %s, %s", fi.Name(), name, err.Error()))
 		return
 	}
@@ -302,16 +308,14 @@ func (w *action) deleteFiles() {
 	files := co.MarkedOrSelected()
 	fc, dc := 0, 0
 	for _, v := range files {
-		if v.IsDir() {
-			err := g.DeleteDir(v.Path())
-			if err == nil {
-				dc++
-			}
+		err := v.(model.Op).Delete()
+		if err != nil {
 			continue
 		}
 
-		err := g.DeleteFile(v.Path())
-		if err == nil {
+		if v.IsDir() {
+			dc++
+		} else {
 			fc++
 		}
 	}
@@ -354,7 +358,7 @@ func (w *action) openFile() {
 		return
 	}
 
-	err = g.Open(file.Path())
+	err = file.(model.Op).Open()
 	if err != nil {
 		ui.MessageEvent.Send(err.Error())
 	}
@@ -363,7 +367,7 @@ func (w *action) openFile() {
 func (w *action) clipFile() {
 	co := wo.CurrentGroup().Current()
 	if wo.Clip == nil {
-		wo.Clip = model.CopySource(co.MarkedOrSelected())
+		wo.Clip = co.MarkedOrSelected()
 		ui.Batch(
 			ui.MessageEvent.With("Marked/Selected files are clipped"),
 			ui.ClipChangedEvent.With(wo.Clip),
@@ -484,14 +488,15 @@ func (w *action) copyFile() {
 	}
 
 	g := wo.CurrentGroup()
-	task, ok := wo.Clip.CopyTask(g, g.Current().Path())
+	op := g.Current().File().(model.DirOp)
+	tasks, err := op.Write(wo.Clip)
 	wo.Clip = nil
-	if !ok {
-		ui.MessageEvent.Send("No file to copy")
+	if err != nil {
+		ui.MessageEvent.Send(err.Error())
 		return
 	}
 
-	msg := wo.Tm.Submit(task)
+	msg := wo.Tm.Submit(model.NewBatchTask("Copy", tasks))
 	go func() {
 		for v := range msg {
 			ui.MessageEvent.Send(v)
@@ -510,7 +515,8 @@ func (w *action) moveFile() {
 	}
 
 	g := wo.CurrentGroup()
-	err := wo.Clip.MoveTo(g, g.Current().Path())
+	op := g.Current().File().(model.DirOp)
+	err := op.Move(wo.Clip)
 	if err != nil {
 		ui.MessageEvent.Send(err.Error())
 		return
@@ -518,7 +524,7 @@ func (w *action) moveFile() {
 
 	for _, v := range wo.Clip {
 		if v.IsDir() {
-			g.DeleteDir(v.Path())
+			v.(model.Op).Delete()
 		}
 	}
 	wo.Clip = nil

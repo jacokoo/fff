@@ -7,7 +7,7 @@ import (
 // Workspace hold all state
 type Workspace struct {
 	Groups         []Group
-	Clip           CopySource
+	Clip           []FileItem
 	Tm             *TaskManager
 	Current        int
 	Bookmark       *Bookmark

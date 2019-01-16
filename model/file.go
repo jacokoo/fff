@@ -24,42 +24,35 @@ type Link interface {
 	IsDir() bool
 }
 
-// FileLink symbolic link
-type FileLink struct {
+type fileLink struct {
 	broken bool
 	target string
 	isDir  bool
 }
 
-// IsBroken is the link broken
-func (fl *FileLink) IsBroken() bool {
+func (fl *fileLink) IsBroken() bool {
 	return fl.broken
 }
 
-// IsDir is the link link to a dir
-func (fl *FileLink) IsDir() bool {
+func (fl *fileLink) IsDir() bool {
 	return fl.isDir
 }
 
-// Target the target file path
-func (fl *FileLink) Target() string {
+func (fl *fileLink) Target() string {
 	return fl.target
 }
 
-// File is a file item
-type File struct {
+type fileItem struct {
 	path string
-	link *FileLink
+	link *fileLink
 	os.FileInfo
 }
 
-// Path the absolute path
-func (f *File) Path() string {
+func (f *fileItem) Path() string {
 	return f.path
 }
 
-// Link return the file link
-func (f *File) Link() (Link, bool) {
+func (f *fileItem) Link() (Link, bool) {
 	if f.link == nil {
 		return nil, false
 	}
@@ -67,8 +60,7 @@ func (f *File) Link() (Link, bool) {
 	return f.link, true
 }
 
-// IsDir if the file links to a dir return true
-func (f *File) IsDir() bool {
+func (f *fileItem) IsDir() bool {
 	if f.FileInfo.IsDir() {
 		return true
 	}
@@ -82,25 +74,25 @@ func (f *File) IsDir() bool {
 
 // NewFile create file item
 // path is the parent dir of info
-func NewFile(path string, info os.FileInfo) FileItem {
-	var link *FileLink
+func newFile(path string, info os.FileInfo) *fileItem {
+	var link *fileLink
 	p := filepath.Join(path, info.Name())
 	if info.Mode()&os.ModeSymlink != 0 {
-		link = new(FileLink)
+		link = new(fileLink)
 		st, err := os.Stat(p)
 		link.broken = err != nil
 		link.isDir = err == nil && st.IsDir()
 		tr, _ := os.Readlink(p)
 		link.target = tr
 	}
-	return &File{p, link, info}
+	return &fileItem{p, link, info}
 }
 
 // NewFiles create a file list
-func NewFiles(path string, infos []os.FileInfo) []FileItem {
-	fis := make([]FileItem, len(infos))
+func newFiles(path string, infos []os.FileInfo) []*fileItem {
+	fis := make([]*fileItem, len(infos))
 	for i, v := range infos {
-		fis[i] = NewFile(path, v)
+		fis[i] = newFile(path, v)
 	}
 	return fis
 }

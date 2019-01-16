@@ -2,9 +2,10 @@ package model
 
 // Column represent a directory
 type Column interface {
+	File() FileItem
 	Path() string
 	Update()
-	Refresh(string, []FileItem)
+	Refresh(FileItem) error
 	MarkedOrSelected() []FileItem
 	ToggleMarkAll()
 
@@ -57,18 +58,30 @@ func (bc *BaseColumn) ToggleMarkAll() {
 
 // LocalColumn use local file system
 type LocalColumn struct {
-	path string
+	item FileItem
 	*BaseColumn
+}
+
+// File the underground file
+func (bc *LocalColumn) File() FileItem {
+	return bc.item
 }
 
 // Path the underground path of column
 func (bc *LocalColumn) Path() string {
-	return bc.path
+	return bc.item.Path()
 }
 
 // Refresh the specified path
-func (bc *LocalColumn) Refresh(path string, items []FileItem) {
-	bc.path = path
+func (bc *LocalColumn) Refresh(item FileItem) error {
+	if item != nil {
+		bc.item = item
+	}
+
+	items, err := bc.item.(DirOp).Read()
+	if err != nil {
+		return err
+	}
 
 	fl := &BaseFileList{bc.Order(), items, items, false}
 	se := &BaseSelector{0, fl}
@@ -80,15 +93,20 @@ func (bc *LocalColumn) Refresh(path string, items []FileItem) {
 	bc.Marker = ma
 	bc.Filterer = fi
 	bc.Update()
+	return nil
 }
 
 // NewLocalColumn create column
-func NewLocalColumn(path string, items []FileItem) Column {
+func NewLocalColumn(item FileItem) (Column, error) {
+	items, err := item.(DirOp).Read()
+	if err != nil {
+		return nil, err
+	}
 	fl := &BaseFileList{OrderByName, items, items, false}
 	se := &BaseSelector{0, fl}
 	ma := &BaseMarker{nil, se}
 	fi := &BaseFilter{"", false, fl}
 	fi.DoFilter()
 	fl.Sort(OrderByName)
-	return &LocalColumn{path, &BaseColumn{fl, se, ma, fi}}
+	return &LocalColumn{item, &BaseColumn{fl, se, ma, fi}}, nil
 }

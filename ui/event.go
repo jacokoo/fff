@@ -277,7 +277,7 @@ func init() {
 		},
 
 		ClipChangedEvent: func(data interface{}) {
-			if data == nil || len(data.(model.CopySource)) == 0 {
+			if data == nil || len(data.([]model.FileItem)) == 0 {
 				ui.Clip.SetData(nil)
 				Redraw(ui.headerLeft)
 
@@ -288,7 +288,7 @@ func init() {
 			}
 
 			items := make([]string, 0)
-			cs := data.(model.CopySource)
+			cs := data.([]model.FileItem)
 			for _, v := range cs {
 				items = append(items, fmt.Sprintf("  %s  ", v.Path()))
 			}
