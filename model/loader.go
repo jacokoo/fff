@@ -25,6 +25,8 @@ func init() {
 	local := &localLoader{root}
 	registerLoader(local)
 	registerLoader(new(zipLoader))
+	registerLoader(new(tarLoader))
+	registerLoader(new(tgzLoader))
 }
 
 type localLoader struct {

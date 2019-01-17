@@ -154,8 +154,8 @@ func (dd defaultDirOp) write(root string, item FileItem) ([]Task, error) {
 	}
 
 	return []Task{NewTask(item.Name(), func(progress chan<- int, quit <-chan bool, eh chan<- error) {
-		defer close(eh)
 		defer close(progress)
+		defer close(eh)
 
 		r, err := item.(FileOp).Reader()
 		if err != nil {

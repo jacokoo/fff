@@ -272,7 +272,6 @@ func (tm *TaskManager) Submit(task Task) <-chan string {
 			v.Progress(task)
 		}
 	}, func() {
-		close(message)
 		ts := make([]Task, 0)
 		for _, v := range tm.Tasks {
 			if v != task {
@@ -291,6 +290,7 @@ func (tm *TaskManager) Submit(task Task) <-chan string {
 		for v := range err {
 			message <- v.Error()
 		}
+		close(message)
 	}()
 
 	tm.quits[task] = quit
