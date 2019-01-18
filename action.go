@@ -490,14 +490,14 @@ func (w *action) copyFile() {
 
 	g := wo.CurrentGroup()
 	op := g.Current().File().(model.DirOp)
-	tasks, err := op.Write(wo.Clip)
+	task, err := op.Write(wo.Clip)
 	wo.Clip = nil
 	if err != nil {
 		ui.MessageEvent.Send(err.Error())
 		return
 	}
 
-	msg := wo.Tm.Submit(model.NewBatchTask("Copy", tasks))
+	msg := wo.Tm.Submit(task)
 	go func() {
 		for v := range msg {
 			ui.MessageEvent.Send(v)

@@ -20,13 +20,14 @@ type Op interface {
 // FileOp file operators
 type FileOp interface {
 	Reader() (io.ReadCloser, error)
+	Writer(int) (io.WriteCloser, error)
 	Op
 }
 
 // DirOp dir operators
 type DirOp interface {
 	Read() ([]FileItem, error)
-	Write([]FileItem) ([]Task, error)
+	Write([]FileItem) (Task, error)
 	Move([]FileItem) error
 	NewFile(string) error
 	NewDir(string) error
@@ -75,6 +76,10 @@ type defaultFileOp struct {
 
 func (df *defaultFileOp) Reader() (io.ReadCloser, error) {
 	return os.Open(df.Path())
+}
+
+func (df *defaultFileOp) Writer(flag int) (io.WriteCloser, error) {
+	return os.OpenFile(df.Path(), flag, 0644)
 }
 
 type defaultDirOp struct {
@@ -143,14 +148,9 @@ func (dd *defaultDirOp) Move(items []FileItem) error {
 	return nil
 }
 
-func (dd defaultDirOp) write(root string, item FileItem) ([]Task, error) {
+func (dd *defaultDirOp) write(root string, item FileItem) ([]Task, error) {
 	if item.IsDir() {
-		its, err := item.(DirOp).Read()
-		if err != nil {
-			return nil, err
-		}
-
-		return dd.writeDir(root, its)
+		return dd.writeDir(root, item)
 	}
 
 	return []Task{NewTask(item.Name(), func(progress chan<- int, quit <-chan bool, eh chan<- error) {
@@ -197,9 +197,9 @@ func (dd defaultDirOp) write(root string, item FileItem) ([]Task, error) {
 		for !quited {
 			n, err := r.Read(buf)
 			if n > 0 {
-				_, err = w.Write(buf[:n])
-				if err != nil {
-					eh <- err
+				_, err2 := w.Write(buf[:n])
+				if err2 != nil {
+					eh <- err2
 					return
 				}
 
@@ -222,9 +222,14 @@ func (dd defaultDirOp) write(root string, item FileItem) ([]Task, error) {
 	})}, nil
 }
 
-func (dd defaultDirOp) writeDir(root string, items []FileItem) ([]Task, error) {
+func (dd *defaultDirOp) writeDir(root string, item FileItem) ([]Task, error) {
+	its, err := item.(DirOp).Read()
+	if err != nil {
+		return nil, err
+	}
+
 	re := make([]Task, 0)
-	for _, v := range items {
+	for _, v := range its {
 		ts, err := dd.write(root, v)
 		if err != nil {
 			return re, err
@@ -234,14 +239,14 @@ func (dd defaultDirOp) writeDir(root string, items []FileItem) ([]Task, error) {
 	return re, nil
 }
 
-func (dd *defaultDirOp) Write(items []FileItem) ([]Task, error) {
+func (dd *defaultDirOp) Write(items []FileItem) (Task, error) {
 	re := make([]Task, 0)
 	for _, v := range items {
 		ts, err := dd.write(filepath.Dir(v.Path()), v)
 		if err != nil {
-			return re, err
+			return nil, err
 		}
 		re = append(re, ts...)
 	}
-	return re, nil
+	return NewBatchTask("Copy", re), nil
 }

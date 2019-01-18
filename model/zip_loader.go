@@ -19,7 +19,7 @@ func openZip(a archive) (io.Closer, *zip.Reader, error) {
 	}
 	ra, ok := in.(io.ReaderAt)
 	if !ok {
-		return nil, nil, errors.New("not supported: reader is not a ReaderAt")
+		return nil, nil, errors.New(zipstring + ": can not open zip file, ReaderAt is required")
 	}
 	r, err := zip.NewReader(ra, a.origin().Size())
 	if err != nil {
@@ -28,20 +28,14 @@ func openZip(a archive) (io.Closer, *zip.Reader, error) {
 	return in, r, nil
 }
 
-type zipItem struct {
-	archiveItem
-}
-
-// Delete may support by write all other files to a tmp file then rename it back to override current zip file
-func (zf *zipItem) Delete() error       { return errors.New("zip: delete is not supported") }
-func (zf *zipItem) Rename(string) error { return errors.New("zip: rename is not supported") }
-func (zf *zipItem) Open() error         { return zf.archive().origin().(Op).Open() }
-
 type zipfile struct {
-	*zipItem
+	*archiveFileOp
 }
 
-func (zf *zipfile) IsDir() bool { return false }
+func newZipfile(ai archiveItem) *zipfile {
+	return &zipfile{&archiveFileOp{&archiveOp{ai}}}
+}
+
 func (zf *zipfile) Reader() (io.ReadCloser, error) {
 	file, reader, err := openZip(zf.archive())
 	if err != nil {
@@ -62,18 +56,11 @@ func (zf *zipfile) Reader() (io.ReadCloser, error) {
 }
 
 type zipdir struct {
-	*zipItem
+	*archiveDirOp
 }
 
-func (zd *zipdir) IsDir() bool                   { return true }
-func (zd *zipdir) NewFile(string) error          { return errors.New("zip: new file is not supported") }
-func (zd *zipdir) NewDir(string) error           { return errors.New("zip: new dir is not supported") }
-func (zd *zipdir) Move([]FileItem) error         { return errors.New("zip: move is not supported") }
-func (zd *zipdir) To(p string) (FileItem, error) { return archiveTo(zd, p) }
-func (zd *zipdir) Read() ([]FileItem, error)     { return archiveChildren(zd), nil }
-
-func (zd *zipdir) Write([]FileItem) ([]Task, error) {
-	return nil, nil
+func newZipdir(ai archiveItem) *zipdir {
+	return &zipdir{&archiveDirOp{&archiveOp{ai}}}
 }
 
 type zipLoader struct {
@@ -92,21 +79,19 @@ func (zl *zipLoader) Create(item FileItem) (FileItem, error) {
 	}
 	defer file.Close()
 
-	ar.ro = &zipdir{&zipItem{ar.createRoot(zipstring)}}
+	ar.ro = newZipdir(ar.createRoot(zipstring))
 
 	items := make([]archiveItem, 0)
 	for _, v := range reader.File {
 		p := path.Clean(v.Name)
-		ii := &zipItem{ar.create(v.FileInfo(), zipstring, p)}
+		ii := ar.create(v.FileInfo(), zipstring, p)
 		if ii.IsDir() {
-			items = append(items, &zipdir{ii})
+			items = append(items, newZipdir(ii))
 		} else {
-			items = append(items, &zipfile{ii})
+			items = append(items, newZipfile(ii))
 		}
 	}
 	ar.its = items
-	checkMissedDir(ar, func(it *defaultArchiveItem) archiveItem {
-		return &zipdir{&zipItem{it}}
-	})
+	checkMissedDir(ar, func(it *defaultArchiveItem) archiveItem { return newZipdir(it) })
 	return ar.ro, nil
 }

@@ -4,8 +4,11 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"errors"
+	"fmt"
 	"io"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -14,10 +17,10 @@ func openTar(a archive) (io.Closer, *tar.Reader, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	wrapper := a.config().(func(io.Reader) (io.ReadCloser, error))
+	wrapper := a.config().(*tarWrapper)
 
-	if wrapper != nil {
-		wr, err := wrapper(in)
+	if wrapper.reader != nil {
+		wr, err := wrapper.reader(in)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -27,20 +30,75 @@ func openTar(a archive) (io.Closer, *tar.Reader, error) {
 	return in, tar.NewReader(in), nil
 }
 
-type tarItem struct {
-	archiveItem
+func writeTar(a archive) (io.Closer, *tar.Writer, error) {
+	wrapper := a.config().(*tarWrapper)
+	if wrapper.reader != nil || wrapper.writer != nil {
+		return nil, nil, fmt.Errorf("%s: write to compressed tar is not supported", a.prefix())
+	}
+
+	in, err := a.origin().(FileOp).Reader()
+	if err != nil {
+		return nil, nil, err
+	}
+	ii, ok := in.(io.ReadSeeker)
+	if !ok {
+		in.Close()
+		return nil, nil, fmt.Errorf("%s: can not append to tar, is not a seeker", a.prefix())
+	}
+
+	num := 1
+	buf := make([]byte, 512)
+	for {
+		ii.Seek(int64(-512*num), io.SeekEnd)
+		n, _ := ii.Read(buf)
+		if n < 512 {
+			num--
+			break
+		}
+		count := 0
+		for _, v := range buf[:n] {
+			count += int(v)
+		}
+		if count > 0 {
+			num--
+			break
+		}
+		num++
+	}
+	in.Close()
+
+	out, err := a.origin().(FileOp).Writer(os.O_WRONLY)
+	if err != nil {
+		return nil, nil, err
+	}
+	o, ok := out.(io.Seeker)
+	if !ok {
+		out.Close()
+		return nil, nil, fmt.Errorf("%s: can not append to tar, is not a seeker", a.prefix())
+	}
+
+	_, err = o.Seek(int64(-512*num), io.SeekEnd)
+	if err != nil {
+		out.Close()
+		return nil, nil, err
+	}
+
+	return out, tar.NewWriter(out), nil
 }
 
-// Delete may support by write all other files to a tmp file then rename it back to override current zip file
-func (ti *tarItem) Delete() error       { return errors.New("tar: delete is not supported") }
-func (ti *tarItem) Rename(string) error { return errors.New("tar: rename is not supported") }
-func (ti *tarItem) Open() error         { return ti.archive().origin().(Op).Open() }
+type tarWrapper struct {
+	reader func(io.Reader) (io.ReadCloser, error)
+	writer func(io.Writer) (io.WriteCloser, error)
+}
 
 type tarFile struct {
-	*tarItem
+	*archiveFileOp
 }
 
-func (tf *tarFile) IsDir() bool { return false }
+func newTarFile(ai archiveItem) *tarFile {
+	return &tarFile{&archiveFileOp{&archiveOp{ai}}}
+}
+
 func (tf *tarFile) Reader() (io.ReadCloser, error) {
 	c, re, err := openTar(tf.archive())
 	if err != nil {
@@ -63,22 +121,132 @@ func (tf *tarFile) Reader() (io.ReadCloser, error) {
 		}
 	}
 
+	c.Close()
 	return nil, errors.New("tar: file not found")
 }
 
 type tarDir struct {
-	*tarItem
+	*archiveDirOp
 }
 
-func (*tarDir) IsDir() bool                      { return true }
-func (*tarDir) NewFile(string) error             { return errors.New("tar: new file is not supported") }
-func (*tarDir) NewDir(string) error              { return errors.New("tar: new dir is not supported") }
-func (*tarDir) Move([]FileItem) error            { return errors.New("tar: move is not supported") }
-func (td *tarDir) To(p string) (FileItem, error) { return archiveTo(td, p) }
-func (td *tarDir) Read() ([]FileItem, error)     { return archiveChildren(td), nil }
+func newTarDir(ai archiveItem) *tarDir {
+	return &tarDir{&archiveDirOp{&archiveOp{ai}}}
+}
 
-func (td *tarDir) Write([]FileItem) ([]Task, error) {
-	return nil, nil
+func (td *tarDir) write(w *tar.Writer, root string, item FileItem) ([]Task, error) {
+	name, _ := filepath.Rel(root, item.Path())
+	name = filepath.Join(td.ipath(), name)
+	for _, v := range td.archive().items() {
+		if name == v.ipath() {
+			return nil, nil
+		}
+	}
+
+	if item.IsDir() {
+		return td.writeDir(w, root, item)
+	}
+
+	return []Task{NewTask(item.Name(), func(progress chan<- int, quit <-chan bool, eh chan<- error) {
+		defer close(progress)
+		defer close(eh)
+
+		r, err := item.(FileOp).Reader()
+		if err != nil {
+			eh <- err
+			return
+		}
+		defer r.Close()
+
+		h := &tar.Header{
+			Name:    name,
+			Mode:    int64(item.Mode()),
+			ModTime: item.ModTime(),
+			Size:    item.Size(),
+		}
+
+		err = w.WriteHeader(h)
+		if err != nil {
+			eh <- err
+			return
+		}
+
+		quited := false
+		go func() {
+			<-quit
+			quited = true
+		}()
+
+		buf := make([]byte, 4096)
+		pg := 0
+		si := float64(item.Size())
+		var count int64
+
+		for !quited {
+			n, err := r.Read(buf)
+			if n > 0 {
+				_, err2 := w.Write(buf[:n])
+				if err2 != nil {
+					eh <- err2
+					return
+				}
+
+				count += int64(n)
+				pp := int(float64(count) / si * 100)
+				if pp > pg {
+					pg = pp
+					progress <- pg
+				}
+			}
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				eh <- err
+				break
+			}
+		}
+	})}, nil
+}
+
+func (td *tarDir) writeDir(w *tar.Writer, root string, item FileItem) ([]Task, error) {
+	its, err := item.(DirOp).Read()
+	if err != nil {
+		return nil, err
+	}
+
+	ts := make([]Task, 0)
+	for _, v := range its {
+		s, err := td.write(w, root, v)
+		if err != nil {
+			return ts, err
+		}
+		ts = append(ts, s...)
+	}
+	return ts, nil
+}
+
+func (td *tarDir) Write(items []FileItem) (Task, error) {
+	c, w, err := writeTar(td.archive())
+	if err != nil {
+		return nil, err
+	}
+
+	ts := make([]Task, 0)
+	for _, v := range items {
+		s, err := td.write(w, filepath.Dir(v.Path()), v)
+		if err != nil {
+			return nil, err
+		}
+		ts = append(ts, s...)
+	}
+
+	bt := NewBatchTask("Copy", ts)
+	bt.Attach(NewListener(nil, func() {
+		w.Close()
+		c.Close()
+	}))
+
+	return bt, nil
 }
 
 type tarLoader struct{}
@@ -88,7 +256,7 @@ func (*tarLoader) Support(item FileItem) bool {
 	return !item.IsDir() && strings.HasSuffix(item.Name(), ".tar")
 }
 
-func newTarArchive(prefix string, wrapper func(io.Reader) (io.ReadCloser, error), item FileItem) (archive, error) {
+func newTarArchive(prefix string, wrapper *tarWrapper, item FileItem) (archive, error) {
 	ta := &defaultArchive{prefix, item, nil, nil, wrapper}
 	file, reader, err := openTar(ta)
 	if err != nil {
@@ -96,7 +264,7 @@ func newTarArchive(prefix string, wrapper func(io.Reader) (io.ReadCloser, error)
 	}
 	defer file.Close()
 
-	ta.ro = &tarDir{&tarItem{ta.createRoot(prefix)}}
+	ta.ro = newTarDir(ta.createRoot(prefix))
 
 	items := make([]archiveItem, 0)
 	for {
@@ -109,23 +277,22 @@ func newTarArchive(prefix string, wrapper func(io.Reader) (io.ReadCloser, error)
 		}
 		name := path.Clean(h.Name)
 		dai := ta.create(h.FileInfo(), prefix, name)
-		ai := &tarItem{dai}
 
-		if ai.IsDir() {
-			items = append(items, &tarDir{ai})
+		if dai.IsDir() {
+			items = append(items, newTarDir(dai))
 		} else {
-			items = append(items, &tarFile{ai})
+			items = append(items, newTarFile(dai))
 		}
 	}
 	ta.its = items
 	checkMissedDir(ta, func(it *defaultArchiveItem) archiveItem {
-		return &tarDir{&tarItem{it}}
+		return newTarDir(it)
 	})
 	return ta, nil
 }
 
 func (*tarLoader) Create(item FileItem) (FileItem, error) {
-	ta, err := newTarArchive("@tar://", nil, item)
+	ta, err := newTarArchive("@tar://", new(tarWrapper), item)
 	if err != nil {
 		return nil, err
 	}
@@ -144,9 +311,11 @@ func (*tgzLoader) Support(item FileItem) bool {
 }
 
 func (*tgzLoader) Create(item FileItem) (FileItem, error) {
-	ta, err := newTarArchive("@tgz://", func(reader io.Reader) (io.ReadCloser, error) {
+	ta, err := newTarArchive("@tgz://", &tarWrapper{func(reader io.Reader) (io.ReadCloser, error) {
 		return gzip.NewReader(reader)
-	}, item)
+	}, func(writer io.Writer) (io.WriteCloser, error) {
+		return gzip.NewWriter(writer), nil
+	}}, item)
 	if err != nil {
 		return nil, err
 	}

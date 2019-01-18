@@ -2,6 +2,7 @@ package model
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path"
@@ -45,14 +46,6 @@ type defaultArchiveItem struct {
 	FileItem
 }
 
-type archiveFile struct {
-	*defaultArchiveItem
-}
-
-type archiveDir struct {
-	*defaultArchiveItem
-}
-
 func (da *defaultArchiveItem) archive() archive { return da.ar }
 func (da *defaultArchiveItem) ipath() string    { return da.p }
 func (da *defaultArchiveItem) depth() int       { return da.d }
@@ -62,11 +55,7 @@ func archiveTo(from archiveItem, to string) (FileItem, error) {
 	p = path.Join(from.ipath(), p)
 	for _, v := range from.archive().items() {
 		switch tt := v.(type) {
-		case *zipfile:
-			if tt.ipath() == p {
-				return v, nil
-			}
-		case *zipdir:
+		case archiveItem:
 			if tt.ipath() == p {
 				return v, nil
 			}
@@ -133,11 +122,12 @@ func checkMissedDir(ar *defaultArchive, toDir func(*defaultArchiveItem) archiveI
 			}
 		}
 	}
-	for k, v := range has {
+	for k := range has {
+		v := has[k]
 		if v {
 			continue
 		}
-		for {
+		for !has[k] {
 			md := ar.createMissedDir(ar.prefix(), k)
 			ar.its = append(ar.its, toDir(md))
 			has[k] = true
@@ -173,4 +163,67 @@ func (rc *readCloserN) Close() error {
 
 func newReadCloser(reader io.Reader, closers ...io.Closer) io.ReadCloser {
 	return &readCloserN{reader, closers}
+}
+
+type writeCloserN struct {
+	io.Writer
+	closers []io.Closer
+}
+
+func (rc *writeCloserN) Close() error {
+	var ers []string
+	for _, v := range rc.closers {
+		if err := v.Close(); err != nil {
+			ers = append(ers, err.Error())
+		}
+	}
+	return errors.New(strings.Join(ers, "\n"))
+}
+
+func newWriteCloser(writer io.Writer, closers ...io.Closer) io.WriteCloser {
+	return &writeCloserN{writer, closers}
+}
+
+type archiveOp struct {
+	archiveItem
+}
+
+func (ti *archiveOp) Open() error { return ti.archive().origin().(Op).Open() }
+
+func (ti *archiveOp) Delete() error {
+	return fmt.Errorf("%s: delete is not supported", ti.archive().prefix())
+}
+
+func (ti *archiveOp) Rename(string) error {
+	return fmt.Errorf("%s: rename is not supported", ti.archive().prefix())
+}
+
+type archiveFileOp struct {
+	*archiveOp
+}
+
+func (*archiveFileOp) IsDir() bool { return false }
+func (ti *archiveFileOp) Writer(int) (io.WriteCloser, error) {
+	return nil, fmt.Errorf("%s: writer is not supported", ti.archive().prefix())
+}
+
+type archiveDirOp struct {
+	*archiveOp
+}
+
+func (*archiveDirOp) IsDir() bool                      { return true }
+func (td *archiveDirOp) To(p string) (FileItem, error) { return archiveTo(td, p) }
+func (td *archiveDirOp) Read() ([]FileItem, error)     { return archiveChildren(td), nil }
+
+func (td *archiveDirOp) NewFile(string) error {
+	return fmt.Errorf("%s: new file is not supported", td.archive().prefix())
+}
+func (td *archiveDirOp) NewDir(string) error {
+	return fmt.Errorf("%s: new dir is not supported", td.archive().prefix())
+}
+func (td *archiveDirOp) Move([]FileItem) error {
+	return fmt.Errorf("%s: move is not supported", td.archive().prefix())
+}
+func (td *archiveDirOp) Write([]FileItem) (Task, error) {
+	return nil, fmt.Errorf("%s: write to dir is not supported", td.archive().prefix())
 }

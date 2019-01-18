@@ -75,5 +75,5 @@ func LoadFile(item FileItem) (FileItem, error) {
 			return v.Create(item)
 		}
 	}
-	return nil, errors.New("file not supported")
+	return nil, errors.New("can not open file")
 }
