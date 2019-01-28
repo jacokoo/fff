@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	"github.com/jacokoo/fff/model"
@@ -26,13 +25,14 @@ var (
 
 	ac         *action
 	wo         *model.Workspace
-	command    *exec.Cmd
 	maxColumns int
 	gui        *ui.UI
+	delay      func() error
 )
 
 func init() {
 	ui.SetColors(cfg.colors)
+	model.SetDefault(cfg.shell, cfg.pager, cfg.editor)
 }
 
 func start(redraw bool) {
@@ -55,8 +55,7 @@ func start(redraw bool) {
 		case termbox.EventKey:
 			quitIt := 0
 			if isShell(ev) {
-				// TODO buggy, need to wait key handle complete
-				kbd <- ev
+				kbdHandleNormal(ev)
 				quitIt = 2
 			}
 
@@ -132,19 +131,15 @@ func main() {
 		case 1:
 			return
 		case 2:
-			if command == nil {
+			if delay == nil {
 				go start(true)
 				break
 			}
-			os.Chdir(wo.CurrentGroup().Path())
-			command.Stdin = os.Stdin
-			command.Stderr = os.Stderr
-			command.Stdout = os.Stdout
-			err := command.Run()
-			command = nil
+			err := delay()
+			delay = nil
 			go start(true)
 			if err != nil {
-				ui.MessageEvent.Send("Failed to execute command: " + err.Error())
+				ui.MessageEvent.Send(err.Error())
 			}
 		}
 	}

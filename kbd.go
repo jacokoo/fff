@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os/exec"
 
 	"github.com/jacokoo/fff/ui"
 
@@ -186,23 +185,9 @@ var (
 			enterInputMode(deleteFileInputer)
 		}),
 
-		"ActionEdit": limit(ModeNormal, func() {
-			file, err := wo.CurrentGroup().Current().CurrentFile()
-			if err != nil || file.IsDir() {
-				return
-			}
-			command = cfg.cmd(fmt.Sprintf("%s %s", cfg.editor, file.Path()))
-		}),
-		"ActionView": limit(ModeNormal, func() {
-			file, err := wo.CurrentGroup().Current().CurrentFile()
-			if err != nil || file.IsDir() {
-				return
-			}
-			command = cfg.cmd(fmt.Sprintf("%s %s", cfg.pager, file.Path()))
-		}),
-		"ActionShell": limit(ModeNormal, func() {
-			command = exec.Command(cfg.shell)
-		}),
+		"ActionEdit":  limit(ModeNormal, func() { delay = func() error { return ac.edit() } }),
+		"ActionView":  limit(ModeNormal, func() { delay = func() error { return ac.view() } }),
+		"ActionShell": limit(ModeNormal, func() { delay = func() error { return ac.shell() } }),
 	}
 
 	mode    = ModeNormal

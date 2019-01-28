@@ -98,7 +98,12 @@ func (w *action) closeRight() {
 	gu := wo.CurrentGroup()
 	gu.Record()
 
-	switch re := gu.CloseDir(); re {
+	re, err := gu.CloseDir()
+	if err != nil {
+		ui.MessageEvent.Send(err.Error())
+		return
+	}
+	switch re {
 	case model.CloseNothing:
 		return
 	case model.CloseSuccess:
@@ -546,4 +551,35 @@ func (w *action) showHelp() {
 func (w *action) closeHelp() {
 	mode = ModeNormal
 	ui.ShowHelpEvent.Send(false)
+}
+
+func (w *action) shell() error {
+	dir := wo.CurrentGroup().Current().File()
+	return dir.(model.DirOp).Shell()
+}
+
+func (w *action) edit() error {
+	file, err := wo.CurrentGroup().Current().CurrentFile()
+	if err != nil {
+		return err
+	}
+
+	err = file.(model.FileOp).Edit()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (w *action) view() error {
+	file, err := wo.CurrentGroup().Current().CurrentFile()
+	if err != nil {
+		return err
+	}
+
+	err = file.(model.FileOp).View()
+	if err != nil {
+		return err
+	}
+	return nil
 }

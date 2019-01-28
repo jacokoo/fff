@@ -191,9 +191,9 @@ All settings are placed in [config.yml](./config.yml), to override it, copy it t
 
 - [ ] Windows support
 
-- [ ] Clip management: show clip list, delete
+- [x] Clip management: show clip list, delete
 
-- [ ] Task management: show task details, cancel task
+- [x] Task management: show task details, cancel task
 
 - [ ] Archive/Unarchive support(progress visible, cancelable)
 

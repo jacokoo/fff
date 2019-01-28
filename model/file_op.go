@@ -10,8 +10,33 @@ import (
 	"runtime"
 )
 
+var (
+	_ = FileOp(new(file))
+	_ = DirOp(new(dir))
+
+	shell  string
+	pager  string
+	editor string
+)
+
+// SetDefault set default
+func SetDefault(sh, pg, ed string) {
+	shell = sh
+	pager = pg
+	editor = ed
+}
+
+func newCmd(args string) *exec.Cmd {
+	cm := exec.Command(shell, "-c", args)
+	cm.Stdin = os.Stdin
+	cm.Stdout = os.Stdout
+	cm.Stderr = os.Stderr
+	return cm
+}
+
 // Op common operators for both file and dir
 type Op interface {
+	Dir() (FileItem, error)
 	Rename(string) error
 	Delete() error
 	Open() error
@@ -21,6 +46,8 @@ type Op interface {
 type FileOp interface {
 	Reader() (io.ReadCloser, error)
 	Writer(int) (io.WriteCloser, error)
+	View() error
+	Edit() error
 	Op
 }
 
@@ -32,11 +59,17 @@ type DirOp interface {
 	NewFile(string) error
 	NewDir(string) error
 	To(string) (FileItem, error)
+	Shell() error
+	Close() error
 	Op
 }
 
 type defaultOp struct {
 	FileItem
+}
+
+func (do *defaultOp) Dir() (FileItem, error) {
+	return Load(filepath.Dir(do.Path()))
 }
 
 func (do *defaultOp) Rename(name string) error {
@@ -63,11 +96,7 @@ func (do *defaultOp) Open() error {
 		return fmt.Errorf("not supported")
 	}
 
-	cmd := exec.Command(open, do.Path())
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
-	return cmd.Start()
+	return newCmd(fmt.Sprintf("%s %s", open, do.Path())).Start()
 }
 
 type defaultFileOp struct {
@@ -82,6 +111,14 @@ func (df *defaultFileOp) Writer(flag int) (io.WriteCloser, error) {
 	return os.OpenFile(df.Path(), flag, 0644)
 }
 
+func (df *defaultFileOp) Edit() error {
+	return newCmd(fmt.Sprintf("%s %s", editor, df.Path())).Run()
+}
+
+func (df *defaultFileOp) View() error {
+	return newCmd(fmt.Sprintf("%s %s", pager, df.Path())).Run()
+}
+
 type defaultDirOp struct {
 	*defaultOp
 }
@@ -94,6 +131,13 @@ type file struct {
 type dir struct {
 	*fileItem
 	*defaultDirOp
+}
+
+func (dd *dir) To(sub string) (FileItem, error) {
+	if filepath.Dir(sub) == sub {
+		return dd, nil
+	}
+	return dd.defaultDirOp.To(sub)
 }
 
 func (dd *defaultDirOp) To(sub string) (FileItem, error) {
@@ -249,4 +293,12 @@ func (dd *defaultDirOp) Write(items []FileItem) (Task, error) {
 		re = append(re, ts...)
 	}
 	return NewBatchTask("Copy", re), nil
+}
+
+func (dd *defaultDirOp) Close() error {
+	return nil
+}
+
+func (dd *defaultDirOp) Shell() error {
+	return newCmd(fmt.Sprintf("cd %s; %s", dd.Path(), shell)).Run()
 }

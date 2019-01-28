@@ -6,6 +6,10 @@ import (
 	"strings"
 )
 
+var (
+	_ = Group(new(LocalGroup))
+)
+
 // CloseResult of Group.CloseDir
 type CloseResult uint8
 
@@ -24,7 +28,7 @@ type Group interface {
 	Shift() bool
 	OpenDir() error
 	OpenRoot(root string) error
-	CloseDir() CloseResult
+	CloseDir() (CloseResult, error)
 	JumpTo(colIdx, fileIdx int) bool
 	Refresh() error
 	Record()
@@ -109,33 +113,57 @@ func (g *LocalGroup) OpenRoot(root string) error {
 		return fmt.Errorf("path: %s is not a dir", root)
 	}
 
+	for i := len(g.columns) - 1; i > 0; i-- {
+		err := g.columns[i].File().(DirOp).Close()
+		if err != nil {
+			return err
+		}
+	}
+
+	err = g.columns[0].Refresh(item)
+	if err != nil {
+		return err
+	}
+
 	g.columns = g.columns[:1]
-	g.columns[0].Refresh(item)
 	g.path = root
 	return nil
 }
 
 // CloseDir close current dir
-func (g *LocalGroup) CloseDir() CloseResult {
+func (g *LocalGroup) CloseDir() (CloseResult, error) {
+	file := g.Current().File()
+	op := file.(DirOp)
 	if len(g.columns) > 1 {
+		err := op.Close()
+		if err != nil {
+			return CloseNothing, err
+		}
 		g.columns = g.columns[:len(g.columns)-1]
 		g.path = g.Current().Path()
-		return CloseSuccess
+		return CloseSuccess, nil
 	}
 
-	pa := filepath.Dir(g.path)
-	if pa == g.path {
-		return CloseNothing
+	parent, err := op.Dir()
+	if err != nil {
+		return CloseNothing, nil
 	}
 
-	g.OpenRoot(pa)
-	return CloseToParent
+	if parent == file {
+		return CloseNothing, nil
+	}
+
+	return CloseToParent, g.Current().Refresh(parent)
 }
 
 // JumpTo a file
 func (g *LocalGroup) JumpTo(colIdx, fileIdx int) bool {
 	if colIdx >= len(g.columns) || fileIdx >= len(g.columns[colIdx].Files()) {
 		return false
+	}
+
+	for i := len(g.columns) - 1; i > colIdx; i-- {
+		g.columns[i].File().(DirOp).Close()
 	}
 
 	g.columns = g.columns[:colIdx+1]

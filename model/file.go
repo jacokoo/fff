@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+var _ = FileItem(new(fileItem))
+
 // FileItem represent a file, with absolute path
 type FileItem interface {
 	Path() string

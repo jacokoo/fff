@@ -188,6 +188,19 @@ type archiveOp struct {
 	archiveItem
 }
 
+func (ti *archiveOp) Dir() (FileItem, error) {
+	ip := ti.archiveItem.ipath()
+	pp := path.Dir(ip)
+
+	if ip == "" && pp == "." {
+		return ti.archive().origin().(Op).Dir()
+	}
+	if ip == "" || pp == "." {
+		return ti.archive().root(), nil
+	}
+	return ti.archive().root().(DirOp).To(pp)
+}
+
 func (ti *archiveOp) Open() error { return ti.archive().origin().(Op).Open() }
 
 func (ti *archiveOp) Delete() error {
@@ -205,6 +218,12 @@ type archiveFileOp struct {
 func (*archiveFileOp) IsDir() bool { return false }
 func (ti *archiveFileOp) Writer(int) (io.WriteCloser, error) {
 	return nil, fmt.Errorf("%s: writer is not supported", ti.archive().prefix())
+}
+func (ti *archiveFileOp) Edit() error {
+	return fmt.Errorf("%s: edit is not supported", ti.archive().prefix())
+}
+func (ti *archiveFileOp) View() error {
+	return fmt.Errorf("%s: view is not supported", ti.archive().prefix())
 }
 
 type archiveDirOp struct {
@@ -226,4 +245,15 @@ func (td *archiveDirOp) Move([]FileItem) error {
 }
 func (td *archiveDirOp) Write([]FileItem) (Task, error) {
 	return nil, fmt.Errorf("%s: write to dir is not supported", td.archive().prefix())
+}
+func (td *archiveDirOp) Shell() error {
+	op, err := td.archive().origin().(Op).Dir()
+	if err != nil {
+		return err
+	}
+
+	return op.(DirOp).Shell()
+}
+func (td *archiveDirOp) Close() error {
+	return nil
 }

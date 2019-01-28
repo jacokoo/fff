@@ -12,6 +12,13 @@ const (
 	zipstring = "@zip://"
 )
 
+var (
+	_ = FileItem(new(zipfile))
+	_ = FileItem(new(zipdir))
+	_ = FileOp(new(zipfile))
+	_ = DirOp(new(zipdir))
+)
+
 func openZip(a archive) (io.Closer, *zip.Reader, error) {
 	in, err := a.origin().(FileOp).Reader()
 	if err != nil {

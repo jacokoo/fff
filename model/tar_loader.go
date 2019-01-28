@@ -12,6 +12,13 @@ import (
 	"strings"
 )
 
+var (
+	_ = FileItem(new(tarFile))
+	_ = FileItem(new(tarDir))
+	_ = FileOp(new(tarFile))
+	_ = DirOp(new(tarDir))
+)
+
 func openTar(a archive) (io.Closer, *tar.Reader, error) {
 	in, err := a.origin().(FileOp).Reader()
 	if err != nil {
