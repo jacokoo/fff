@@ -300,5 +300,10 @@ func (dd *defaultDirOp) Close() error {
 }
 
 func (dd *defaultDirOp) Shell() error {
-	return newCmd(fmt.Sprintf("cd %s; %s", dd.Path(), shell)).Run()
+	os.Chdir(dd.Path())
+	cm := exec.Command(shell)
+	cm.Stderr = os.Stderr
+	cm.Stdin = os.Stdin
+	cm.Stdout = os.Stdout
+	return cm.Run()
 }

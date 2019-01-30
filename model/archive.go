@@ -11,11 +11,12 @@ import (
 )
 
 type archive interface {
-	prefix() string
+	loader() Loader
 	origin() FileItem
 	root() FileItem
 	items() []archiveItem
 	config() interface{}
+	error(string) error
 }
 
 type archiveItem interface {
@@ -26,18 +27,19 @@ type archiveItem interface {
 }
 
 type defaultArchive struct {
-	pre string
+	ld  Loader
 	og  FileItem
 	ro  archiveItem
 	its []archiveItem
 	cfg interface{}
 }
 
-func (da *defaultArchive) prefix() string       { return da.pre }
-func (da *defaultArchive) origin() FileItem     { return da.og }
-func (da *defaultArchive) root() FileItem       { return da.ro }
-func (da *defaultArchive) items() []archiveItem { return da.its }
-func (da *defaultArchive) config() interface{}  { return da.cfg }
+func (da *defaultArchive) loader() Loader         { return da.ld }
+func (da *defaultArchive) origin() FileItem       { return da.og }
+func (da *defaultArchive) root() FileItem         { return da.ro }
+func (da *defaultArchive) items() []archiveItem   { return da.its }
+func (da *defaultArchive) config() interface{}    { return da.cfg }
+func (da *defaultArchive) error(msg string) error { return fmt.Errorf("%s: %s", da.ld.Name(), msg) }
 
 type defaultArchiveItem struct {
 	ar archive
@@ -79,15 +81,15 @@ func archiveChildren(parent archiveItem) []FileItem {
 	return fis
 }
 
-func (da *defaultArchive) create(fi os.FileInfo, prefix, ipath string) *defaultArchiveItem {
+func (da *defaultArchive) create(fi os.FileInfo, ipath string) *defaultArchiveItem {
 	ipath = path.Clean(ipath)
-	p := da.og.Path() + prefix + "/" + ipath
+	p := da.og.Path() + LoaderString(da.ld) + "/" + ipath
 	ffi := &fileItem{p, nil, fi}
 	return &defaultArchiveItem{da, ipath, len(strings.Split(ipath, "/")), ffi}
 }
 
-func (da *defaultArchive) createRoot(prefix string) *defaultArchiveItem {
-	return &defaultArchiveItem{da, "", 0, &archiveRootItem{prefix, da.og}}
+func (da *defaultArchive) createRoot() *defaultArchiveItem {
+	return &defaultArchiveItem{da, "", 0, &archiveRootItem{da, da.og}}
 }
 
 type missedDir struct {
@@ -104,9 +106,9 @@ func (m *missedDir) ModTime() time.Time { return m.modTime }
 func (m *missedDir) IsDir() bool        { return true }
 func (m *missedDir) Sys() interface{}   { return nil }
 
-func (da *defaultArchive) createMissedDir(prefix, ipath string) *defaultArchiveItem {
+func (da *defaultArchive) createMissedDir(ipath string) *defaultArchiveItem {
 	m := &missedDir{path.Base(ipath), 0755, time.Now(), 0}
-	return da.create(m, prefix, ipath)
+	return da.create(m, ipath)
 }
 
 func checkMissedDir(ar *defaultArchive, toDir func(*defaultArchiveItem) archiveItem) {
@@ -128,7 +130,7 @@ func checkMissedDir(ar *defaultArchive, toDir func(*defaultArchiveItem) archiveI
 			continue
 		}
 		for !has[k] {
-			md := ar.createMissedDir(ar.prefix(), k)
+			md := ar.createMissedDir(k)
 			ar.its = append(ar.its, toDir(md))
 			has[k] = true
 			if md.depth() == 1 {
@@ -140,11 +142,13 @@ func checkMissedDir(ar *defaultArchive, toDir func(*defaultArchiveItem) archiveI
 }
 
 type archiveRootItem struct {
-	prefix string
+	ar archive
 	FileItem
 }
 
-func (zr *archiveRootItem) Path() string { return zr.FileItem.Path() + zr.prefix + "/" }
+func (zr *archiveRootItem) Path() string {
+	return zr.FileItem.Path() + LoaderString(zr.ar.loader()) + "/"
+}
 
 type readCloserN struct {
 	io.Reader
@@ -201,15 +205,9 @@ func (ti *archiveOp) Dir() (FileItem, error) {
 	return ti.archive().root().(DirOp).To(pp)
 }
 
-func (ti *archiveOp) Open() error { return ti.archive().origin().(Op).Open() }
-
-func (ti *archiveOp) Delete() error {
-	return fmt.Errorf("%s: delete is not supported", ti.archive().prefix())
-}
-
-func (ti *archiveOp) Rename(string) error {
-	return fmt.Errorf("%s: rename is not supported", ti.archive().prefix())
-}
+func (ti *archiveOp) Open() error         { return ti.archive().origin().(Op).Open() }
+func (ti *archiveOp) Delete() error       { return ti.archive().error("delete is not supported") }
+func (ti *archiveOp) Rename(string) error { return ti.archive().error("rename is not supported") }
 
 type archiveFileOp struct {
 	*archiveOp
@@ -217,14 +215,10 @@ type archiveFileOp struct {
 
 func (*archiveFileOp) IsDir() bool { return false }
 func (ti *archiveFileOp) Writer(int) (io.WriteCloser, error) {
-	return nil, fmt.Errorf("%s: writer is not supported", ti.archive().prefix())
+	return nil, ti.archive().error("writer is not supported")
 }
-func (ti *archiveFileOp) Edit() error {
-	return fmt.Errorf("%s: edit is not supported", ti.archive().prefix())
-}
-func (ti *archiveFileOp) View() error {
-	return fmt.Errorf("%s: view is not supported", ti.archive().prefix())
-}
+func (ti *archiveFileOp) Edit() error { return ti.archive().error("edit is not supported") }
+func (ti *archiveFileOp) View() error { return ti.archive().error("view is not supported") }
 
 type archiveDirOp struct {
 	*archiveOp
@@ -233,19 +227,14 @@ type archiveDirOp struct {
 func (*archiveDirOp) IsDir() bool                      { return true }
 func (td *archiveDirOp) To(p string) (FileItem, error) { return archiveTo(td, p) }
 func (td *archiveDirOp) Read() ([]FileItem, error)     { return archiveChildren(td), nil }
+func (td *archiveDirOp) NewFile(string) error          { return td.archive().error("new file is not supported") }
+func (td *archiveDirOp) NewDir(string) error           { return td.archive().error("new dir is not supported") }
+func (td *archiveDirOp) Move([]FileItem) error         { return td.archive().error("move is not supported") }
 
-func (td *archiveDirOp) NewFile(string) error {
-	return fmt.Errorf("%s: new file is not supported", td.archive().prefix())
-}
-func (td *archiveDirOp) NewDir(string) error {
-	return fmt.Errorf("%s: new dir is not supported", td.archive().prefix())
-}
-func (td *archiveDirOp) Move([]FileItem) error {
-	return fmt.Errorf("%s: move is not supported", td.archive().prefix())
-}
 func (td *archiveDirOp) Write([]FileItem) (Task, error) {
-	return nil, fmt.Errorf("%s: write to dir is not supported", td.archive().prefix())
+	return nil, td.archive().error("write to dir is not supported")
 }
+
 func (td *archiveDirOp) Shell() error {
 	op, err := td.archive().origin().(Op).Dir()
 	if err != nil {

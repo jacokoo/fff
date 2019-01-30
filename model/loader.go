@@ -2,13 +2,16 @@ package model
 
 import (
 	"errors"
+	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 )
 
 // Loader such as ssh, zip, tar, tgz
 type Loader interface {
 	Name() string
+	Seperator() string
 	Support(FileItem) bool
 	Create(FileItem) (FileItem, error)
 }
@@ -29,11 +32,17 @@ func init() {
 	registerLoader(new(tgzLoader))
 }
 
+// LoaderString return @xxx://
+func LoaderString(loader Loader) string {
+	return fmt.Sprintf("@%s://", loader.Name())
+}
+
 type localLoader struct {
 	root FileItem
 }
 
 func (fp *localLoader) Name() string                             { return "file" }
+func (fp *localLoader) Seperator() string                        { return string(filepath.Separator) }
 func (fp *localLoader) Support(item FileItem) bool               { return item.IsDir() }
 func (fp *localLoader) Create(parent FileItem) (FileItem, error) { return fp.root, nil }
 
@@ -42,25 +51,40 @@ func registerLoader(loader Loader) {
 	loaders = append([]Loader{loader}, loaders...)
 }
 
-// Load file item from path
+// PathItem parse result
+type PathItem struct {
+	Loader, Path, Seperator string
+}
+
+// ParsePath parse path
 // /a/b/c.zip@zip:///hello/path
 // /a/b/c.fff@ssh:///opt/c.tgz@tgz:///hello/path
-func Load(path string) (FileItem, error) {
+func ParsePath(path string) []*PathItem {
 	p := "@file://" + path
 	tokens := regexp.MustCompile(`@(\w+)://`).FindAllStringSubmatchIndex(p, -1)
-	var item FileItem
+	re := make([]*PathItem, 0)
 	for i, v := range tokens {
 		end := len(p)
 		if i < len(tokens)-1 {
 			end = tokens[i+1][0]
 		}
-
 		name, arg := p[v[2]:v[3]], p[v[1]:end]
-		i, err := loaderMap[name].Create(item)
+		re = append(re, &PathItem{name, arg, loaderMap[name].Seperator()})
+	}
+	return re
+}
+
+// Load file item from path
+func Load(path string) (FileItem, error) {
+	var item FileItem
+	pis := ParsePath(path)
+	for _, p := range pis {
+		i, err := loaderMap[p.Loader].Create(item)
 		if err != nil {
 			return nil, err
 		}
-		item, err = i.(DirOp).To(arg)
+
+		item, err = i.(DirOp).To(p.Path)
 		if err != nil {
 			return nil, err
 		}
@@ -68,7 +92,7 @@ func Load(path string) (FileItem, error) {
 	return item, nil
 }
 
-// LoadFile load a file as dir
+// LoadFile load a file as dir, such as .tar file
 func LoadFile(item FileItem) (FileItem, error) {
 	for _, v := range loaders {
 		if v.Support(item) {

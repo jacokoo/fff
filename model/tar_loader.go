@@ -3,8 +3,6 @@ package model
 import (
 	"archive/tar"
 	"compress/gzip"
-	"errors"
-	"fmt"
 	"io"
 	"os"
 	"path"
@@ -40,7 +38,7 @@ func openTar(a archive) (io.Closer, *tar.Reader, error) {
 func writeTar(a archive) (io.Closer, *tar.Writer, error) {
 	wrapper := a.config().(*tarWrapper)
 	if wrapper.reader != nil || wrapper.writer != nil {
-		return nil, nil, fmt.Errorf("%s: write to compressed tar is not supported", a.prefix())
+		return nil, nil, a.error("write to compressed tar is not supported")
 	}
 
 	in, err := a.origin().(FileOp).Reader()
@@ -50,7 +48,7 @@ func writeTar(a archive) (io.Closer, *tar.Writer, error) {
 	ii, ok := in.(io.ReadSeeker)
 	if !ok {
 		in.Close()
-		return nil, nil, fmt.Errorf("%s: can not append to tar, is not a seeker", a.prefix())
+		return nil, nil, a.error("can not append to tar, is not a seeker")
 	}
 
 	num := 1
@@ -81,7 +79,7 @@ func writeTar(a archive) (io.Closer, *tar.Writer, error) {
 	o, ok := out.(io.Seeker)
 	if !ok {
 		out.Close()
-		return nil, nil, fmt.Errorf("%s: can not append to tar, is not a seeker", a.prefix())
+		return nil, nil, a.error("can not append to tar, is not a seeker")
 	}
 
 	_, err = o.Seek(int64(-512*num), io.SeekEnd)
@@ -129,7 +127,7 @@ func (tf *tarFile) Reader() (io.ReadCloser, error) {
 	}
 
 	c.Close()
-	return nil, errors.New("tar: file not found")
+	return nil, tf.archive().error("file not found")
 }
 
 type tarDir struct {
@@ -258,20 +256,21 @@ func (td *tarDir) Write(items []FileItem) (Task, error) {
 
 type tarLoader struct{}
 
-func (*tarLoader) Name() string { return "tar" }
+func (*tarLoader) Name() string      { return "tar" }
+func (*tarLoader) Seperator() string { return "/" }
 func (*tarLoader) Support(item FileItem) bool {
 	return !item.IsDir() && strings.HasSuffix(item.Name(), ".tar")
 }
 
-func newTarArchive(prefix string, wrapper *tarWrapper, item FileItem) (archive, error) {
-	ta := &defaultArchive{prefix, item, nil, nil, wrapper}
+func newTarArchive(ld Loader, wrapper *tarWrapper, item FileItem) (archive, error) {
+	ta := &defaultArchive{ld, item, nil, nil, wrapper}
 	file, reader, err := openTar(ta)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
-	ta.ro = newTarDir(ta.createRoot(prefix))
+	ta.ro = newTarDir(ta.createRoot())
 
 	items := make([]archiveItem, 0)
 	for {
@@ -283,7 +282,7 @@ func newTarArchive(prefix string, wrapper *tarWrapper, item FileItem) (archive, 
 			return nil, err
 		}
 		name := path.Clean(h.Name)
-		dai := ta.create(h.FileInfo(), prefix, name)
+		dai := ta.create(h.FileInfo(), name)
 
 		if dai.IsDir() {
 			items = append(items, newTarDir(dai))
@@ -298,8 +297,8 @@ func newTarArchive(prefix string, wrapper *tarWrapper, item FileItem) (archive, 
 	return ta, nil
 }
 
-func (*tarLoader) Create(item FileItem) (FileItem, error) {
-	ta, err := newTarArchive("@tar://", new(tarWrapper), item)
+func (tl *tarLoader) Create(item FileItem) (FileItem, error) {
+	ta, err := newTarArchive(tl, new(tarWrapper), item)
 	if err != nil {
 		return nil, err
 	}
@@ -308,7 +307,8 @@ func (*tarLoader) Create(item FileItem) (FileItem, error) {
 
 type tgzLoader struct{}
 
-func (*tgzLoader) Name() string { return "tgz" }
+func (*tgzLoader) Name() string      { return "tgz" }
+func (*tgzLoader) Seperator() string { return "/" }
 func (*tgzLoader) Support(item FileItem) bool {
 	if item.IsDir() {
 		return false
@@ -317,8 +317,8 @@ func (*tgzLoader) Support(item FileItem) bool {
 	return strings.HasSuffix(name, ".tgz") || strings.HasSuffix(name, ".tar.gz")
 }
 
-func (*tgzLoader) Create(item FileItem) (FileItem, error) {
-	ta, err := newTarArchive("@tgz://", &tarWrapper{func(reader io.Reader) (io.ReadCloser, error) {
+func (tl *tgzLoader) Create(item FileItem) (FileItem, error) {
+	ta, err := newTarArchive(tl, &tarWrapper{func(reader io.Reader) (io.ReadCloser, error) {
 		return gzip.NewReader(reader)
 	}, func(writer io.Writer) (io.WriteCloser, error) {
 		return gzip.NewWriter(writer), nil

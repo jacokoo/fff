@@ -2,14 +2,9 @@ package model
 
 import (
 	"archive/zip"
-	"errors"
 	"io"
 	"path"
 	"strings"
-)
-
-const (
-	zipstring = "@zip://"
 )
 
 var (
@@ -26,7 +21,7 @@ func openZip(a archive) (io.Closer, *zip.Reader, error) {
 	}
 	ra, ok := in.(io.ReaderAt)
 	if !ok {
-		return nil, nil, errors.New(zipstring + ": can not open zip file, ReaderAt is required")
+		return nil, nil, a.error("can not open zip file, ReaderAt is required")
 	}
 	r, err := zip.NewReader(ra, a.origin().Size())
 	if err != nil {
@@ -59,7 +54,7 @@ func (zf *zipfile) Reader() (io.ReadCloser, error) {
 		}
 	}
 	file.Close()
-	return nil, errors.New("zip: file not found")
+	return nil, zf.archive().error("file not found")
 }
 
 type zipdir struct {
@@ -73,25 +68,26 @@ func newZipdir(ai archiveItem) *zipdir {
 type zipLoader struct {
 }
 
-func (zl *zipLoader) Name() string { return "zip" }
+func (zl *zipLoader) Name() string      { return "zip" }
+func (zl *zipLoader) Seperator() string { return "/" }
 func (zl *zipLoader) Support(item FileItem) bool {
 	return !item.IsDir() && strings.HasSuffix(item.Name(), ".zip")
 }
 
 func (zl *zipLoader) Create(item FileItem) (FileItem, error) {
-	ar := &defaultArchive{zipstring, item, nil, nil, nil}
+	ar := &defaultArchive{zl, item, nil, nil, nil}
 	file, reader, err := openZip(ar)
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
-	ar.ro = newZipdir(ar.createRoot(zipstring))
+	ar.ro = newZipdir(ar.createRoot())
 
 	items := make([]archiveItem, 0)
 	for _, v := range reader.File {
 		p := path.Clean(v.Name)
-		ii := ar.create(v.FileInfo(), zipstring, p)
+		ii := ar.create(v.FileInfo(), p)
 		if ii.IsDir() {
 			items = append(items, newZipdir(ii))
 		} else {
