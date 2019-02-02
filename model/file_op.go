@@ -60,7 +60,6 @@ type DirOp interface {
 	NewDir(string) error
 	To(string) (FileItem, error)
 	Shell() error
-	Close() error
 	Op
 }
 
@@ -293,10 +292,6 @@ func (dd *defaultDirOp) Write(items []FileItem) (Task, error) {
 		re = append(re, ts...)
 	}
 	return NewBatchTask("Copy", re), nil
-}
-
-func (dd *defaultDirOp) Close() error {
-	return nil
 }
 
 func (dd *defaultDirOp) Shell() error {

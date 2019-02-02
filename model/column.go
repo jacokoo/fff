@@ -75,10 +75,6 @@ func (bc *LocalColumn) Path() string {
 // Refresh the specified path
 func (bc *LocalColumn) Refresh(item FileItem) error {
 	if item != nil {
-		err := bc.item.(DirOp).Close()
-		if err != nil {
-			return err
-		}
 		bc.item = item
 	}
 

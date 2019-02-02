@@ -113,13 +113,6 @@ func (g *LocalGroup) OpenRoot(root string) error {
 		return fmt.Errorf("path: %s is not a dir", root)
 	}
 
-	for i := len(g.columns) - 1; i > 0; i-- {
-		err := g.columns[i].File().(DirOp).Close()
-		if err != nil {
-			return err
-		}
-	}
-
 	err = g.columns[0].Refresh(item)
 	if err != nil {
 		return err
@@ -135,10 +128,6 @@ func (g *LocalGroup) CloseDir() (CloseResult, error) {
 	file := g.Current().File()
 	op := file.(DirOp)
 	if len(g.columns) > 1 {
-		err := op.Close()
-		if err != nil {
-			return CloseNothing, err
-		}
 		g.columns = g.columns[:len(g.columns)-1]
 		g.path = g.Current().Path()
 		return CloseSuccess, nil
@@ -160,10 +149,6 @@ func (g *LocalGroup) CloseDir() (CloseResult, error) {
 func (g *LocalGroup) JumpTo(colIdx, fileIdx int) bool {
 	if colIdx >= len(g.columns) || fileIdx >= len(g.columns[colIdx].Files()) {
 		return false
-	}
-
-	for i := len(g.columns) - 1; i > colIdx; i-- {
-		g.columns[i].File().(DirOp).Close()
 	}
 
 	g.columns = g.columns[:colIdx+1]

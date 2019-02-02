@@ -30,6 +30,7 @@ func init() {
 	registerLoader(new(zipLoader))
 	registerLoader(new(tarLoader))
 	registerLoader(new(tgzLoader))
+	registerLoader(new(sshLoader))
 }
 
 // LoaderString return @xxx://

@@ -243,6 +243,3 @@ func (td *archiveDirOp) Shell() error {
 
 	return op.(DirOp).Shell()
 }
-func (td *archiveDirOp) Close() error {
-	return nil
-}
