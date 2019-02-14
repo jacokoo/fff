@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path"
 	"strconv"
@@ -232,7 +233,30 @@ type sshfile struct {
 	*sshItem
 }
 
+func (sf *sshfile) readerFromCache() (io.ReadCloser, error) {
+	cc, ok := sf.sshc.cache[sf.ipath]
+	if !ok {
+		return nil, errors.New("no cache")
+	}
+	if cc.modTime != sf.ModTime() {
+		return nil, errors.New("file changed")
+	}
+
+	return os.Open(cc.path)
+}
+
 func (sf *sshfile) Reader() (io.ReadCloser, error) {
+	rc, err := sf.readerFromCache()
+	if err == nil {
+		return rc, nil
+	}
+
+	tmp, err := ioutil.TempFile(sf.sshc.tmpDir, "*")
+	if err != nil {
+		return nil, err
+	}
+	sf.sshc.cache[sf.ipath] = &sshfileCache{tmp.Name(), sf.ModTime()}
+
 	session, err := sf.sshc.conn.NewSession()
 	if err != nil {
 		return nil, err
@@ -249,7 +273,7 @@ func (sf *sshfile) Reader() (io.ReadCloser, error) {
 		return nil, err
 	}
 
-	return newReadCloser(in, session), nil
+	return newReadCloser(io.TeeReader(in, tmp), session, tmp), nil
 }
 
 func (sf *sshfile) Writer(int) (io.WriteCloser, error) {
@@ -280,11 +304,7 @@ func (sf *sshfile) View() error {
 	defer fn()
 	defer se.Close()
 
-	pager = sf.sshc.config.pager
-	if pager == "" {
-		pager = "less"
-	}
-	return se.Run(pager + " " + sf.ipath)
+	return se.Run(sf.sshc.config.pager + " " + sf.ipath)
 }
 
 func (sf *sshfile) Edit() error {
@@ -295,11 +315,7 @@ func (sf *sshfile) Edit() error {
 	defer fn()
 	defer se.Close()
 
-	editor := sf.sshc.config.editor
-	if editor == "" {
-		editor = "vi"
-	}
-	return se.Run(editor + " " + sf.ipath)
+	return se.Run(sf.sshc.config.editor + " " + sf.ipath)
 }
 
 type sshdir struct {

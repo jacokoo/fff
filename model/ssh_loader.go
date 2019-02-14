@@ -46,6 +46,13 @@ type sshc struct {
 	origin FileItem
 	root   FileItem
 	loader Loader
+	tmpDir string
+	cache  map[string]*sshfileCache
+}
+
+type sshfileCache struct {
+	path    string
+	modTime time.Time
 }
 
 func (ss *sshc) error(msg string) error {
@@ -120,7 +127,11 @@ func (sl *sshLoader) Create(origin FileItem) (FileItem, error) {
 			return nil, err
 		}
 
-		ssc = &sshc{sc, conn, "", origin, nil, sl}
+		td, err := ioutil.TempDir("", "fff")
+		if err != nil {
+			return nil, err
+		}
+		ssc = &sshc{sc, conn, "", origin, nil, sl, td, make(map[string]*sshfileCache)}
 		buf, err := ssc.exec("uname")
 		if err != nil {
 			return nil, err
