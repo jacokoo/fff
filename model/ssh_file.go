@@ -58,18 +58,18 @@ var (
 		// root // root // a1ff // 1548989494 // 12 // 'systemd' -> '/etc/systemd'
 		"Linux": func(sc *sshc, path string, dir bool) (io.Reader, error) {
 			if !dir {
-				return sc.exec(`stat -c "%G // %U // %f // %Y // %s // %N" ` + path)
+				return sc.exec(`stat -c "%G // %U // %f // %Y // %s // %N" "` + path + `"`)
 			}
-			return sc.exec("cd " + path + `; stat -c "%G // %U // %f // %Y // %s // %N" .* *`)
+			return sc.exec(`cd "` + path + `"; stat -c "%G // %U // %f // %Y // %s // %N" .* *`)
 		},
 		// stat -f "%Sg // %Su // %Xp // %m // %z // '%N' -> '%Y'" .* *
 		// wheel // root // 41ed // 1532542394 // 960 // '.' -> ''
 		// wheel // root // a1ed // 1512168297 // 11 // 'var' -> 'private/var'
 		"Darwin": func(sc *sshc, path string, dir bool) (io.Reader, error) {
 			if !dir {
-				return sc.exec(`stat -f "%Sg // %Su // %Xp // %m // %z // ‘%N’ -> ‘%Y’" ` + path)
+				return sc.exec(`stat -f "%Sg // %Su // %Xp // %m // %z // ‘%N’ -> ‘%Y’" "` + path + `"`)
 			}
-			return sc.exec("cd " + path + `; stat -f "%Sg // %Su // %Xp // %m // %z // ‘%N’ -> ‘%Y’" .* *`)
+			return sc.exec(`cd "` + path + `"; stat -f "%Sg // %Su // %Xp // %m // %z // ‘%N’ -> ‘%Y’" .* *`)
 		},
 	}
 )
@@ -227,13 +227,13 @@ func (so *sshItem) Dir() (FileItem, error) {
 
 func (so *sshItem) Open() error { return so.sshc.origin.(Op).Open() }
 func (so *sshItem) Delete() error {
-	_, err := so.sshc.execf("rm -rf %s", so.ipath)
+	_, err := so.sshc.execf(`rm -rf "%s"`, so.ipath)
 	return err
 }
 func (so *sshItem) Rename(name string) error {
 	pp := path.Dir(so.ipath)
 	np := path.Join(pp, name)
-	_, err := so.sshc.execf("mv %s %s", so.ipath, np)
+	_, err := so.sshc.execf(`mv "%s" "%s"`, so.ipath, np)
 	return err
 }
 
@@ -275,7 +275,7 @@ func (sf *sshfile) Reader() (io.ReadCloser, error) {
 		session.Close()
 		return nil, err
 	}
-	err = session.Start("dd if=" + sf.ipath)
+	err = session.Start(`dd if="` + sf.ipath + `"`)
 	if err != nil {
 		session.Close()
 		return nil, err
@@ -295,7 +295,7 @@ func (sf *sshfile) Writer(int) (io.WriteCloser, error) {
 		session.Close()
 		return nil, err
 	}
-	err = session.Start("dd of=" + sf.ipath)
+	err = session.Start(`dd of="` + sf.ipath + `"`)
 	if err != nil {
 		session.Close()
 		return nil, err
@@ -312,7 +312,7 @@ func (sf *sshfile) View() error {
 	defer fn()
 	defer se.Close()
 
-	return se.Run(sf.sshc.config.pager + " " + sf.ipath)
+	return se.Run(sf.sshc.config.pager + ` "` + sf.ipath + `"`)
 }
 
 func (sf *sshfile) Edit() error {
@@ -323,7 +323,7 @@ func (sf *sshfile) Edit() error {
 	defer fn()
 	defer se.Close()
 
-	return se.Run(sf.sshc.config.editor + " " + sf.ipath)
+	return se.Run(sf.sshc.config.editor + ` "` + sf.ipath + `"`)
 }
 
 type sshdir struct {
@@ -432,7 +432,8 @@ func (sd *sshdir) write(item FileItem, root string) ([]Task, error) {
 }
 
 func (sd *sshdir) findPid(cmd, cmdstring string) (int, error) {
-	buf, err := sd.sshc.execf(`ps -eo pid,comm,args | grep "%s"`, cmdstring)
+	cmds := strings.Replace(cmdstring, `"`, "", -1)
+	buf, err := sd.sshc.execf(`ps -eo pid,comm,args | grep "%s"`, cmds)
 	if err != nil {
 		return 0, nil
 	}
@@ -460,7 +461,7 @@ func (sd *sshdir) writeSameHost(item *sshfile, root string) ([]Task, error) {
 			eh <- err
 			return
 		}
-		_, err = sd.sshc.execf("ls %s", filepath.Join(sd.ipath, rel))
+		_, err = sd.sshc.execf(`ls "%s"`, filepath.Join(sd.ipath, rel))
 		if err == nil {
 			eh <- errors.New("file already exists")
 			return
@@ -512,7 +513,7 @@ func (sd *sshdir) writeSameHost(item *sshfile, root string) ([]Task, error) {
 			}
 		}()
 
-		cmds := fmt.Sprintf("dd if=%s of=%s", item.ipath, filepath.Join(sd.ipath, rel))
+		cmds := fmt.Sprintf(`dd if="%s" of="%s"`, item.ipath, filepath.Join(sd.ipath, rel))
 		err = se.Start(cmds)
 		if err != nil {
 			eh <- err
@@ -587,15 +588,15 @@ func (sd *sshdir) Move([]FileItem) error {
 }
 func (sd *sshdir) NewFile(name string) error {
 	p := path.Join(sd.ipath, name)
-	_, err := sd.sshc.execf("ls %s", p)
+	_, err := sd.sshc.execf(`ls "%s"`, p)
 	if err == nil {
 		return errors.New("file already exists")
 	}
-	_, err = sd.sshc.execf("touch %s", path.Join(sd.ipath, name))
+	_, err = sd.sshc.execf(`touch "%s"`, path.Join(sd.ipath, name))
 	return err
 }
 func (sd *sshdir) NewDir(name string) error {
-	_, err := sd.sshc.execf("mkdir -p %s", path.Join(sd.ipath, name))
+	_, err := sd.sshc.execf(`mkdir -p "%s"`, path.Join(sd.ipath, name))
 	return err
 }
 func (sd *sshdir) To(pp string) (FileItem, error) {
@@ -609,7 +610,7 @@ func (sd *sshdir) Shell() error {
 	}
 	defer fn()
 	defer se.Close()
-	return se.Run(fmt.Sprintf("cd %s; %s", sd.ipath, sd.sshc.config.shell))
+	return se.Run(fmt.Sprintf(`cd "%s"; %s`, sd.ipath, sd.sshc.config.shell))
 }
 
 type sshroot struct {
