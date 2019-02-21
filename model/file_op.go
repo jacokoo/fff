@@ -224,6 +224,7 @@ func (dd *defaultDirOp) write(root string, item FileItem) ([]Task, error) {
 			eh <- err
 			return
 		}
+		defer w.Close()
 
 		buf := make([]byte, 4096)
 		pg := 0
