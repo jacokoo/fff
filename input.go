@@ -128,6 +128,7 @@ func quitInputMode(abort bool) {
 	inputer.End(abort)
 	inputer = nil
 	ui.QuitInputEvent.Send(wo.CurrentGroup().Current())
+	inputQuit <- true
 	changeMode(ModeNormal)
 }
 
