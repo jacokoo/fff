@@ -213,6 +213,14 @@ func (dd *defaultDirOp) write(root string, item FileItem) ([]Task, error) {
 			return
 		}
 		path := filepath.Join(dd.Path(), rel)
+		_, err = os.Stat(path)
+		if err == nil {
+			RequestCh <- &Request{fmt.Sprintf("%s is already exists, override it? (y/n)", path), false}
+			answer := <-ResponseCh
+			if answer != "y" {
+				return
+			}
+		}
 		err = os.MkdirAll(filepath.Dir(path), 0755)
 		if err != nil {
 			eh <- err
