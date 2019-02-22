@@ -186,8 +186,9 @@ Use `M` to move clipped items to current directory and clear clip
 Create a text config file with extension `.ssh.fff`.
 
 Options:
+
 | Key | Description | Mandatory | Default value |
-| - | - | - | - |
+| --- | ----------- | --------- | ------------- |
 | host | the ssh host IP or domain name | true | |
 | user | the ssh user | false | root |
 | port | the ssh port | false | 22 |
