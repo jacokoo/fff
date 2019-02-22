@@ -142,7 +142,7 @@ func (w *action) openRoot(path string) {
 
 	err := gu.OpenRoot(path)
 	if err != nil {
-		ui.MessageEvent.Send("Can not read dir " + path)
+		ui.MessageEvent.Send("Can not read dir " + path + ": " + err.Error())
 		return
 	}
 	ui.ChangeRootEvent.Send(gu)

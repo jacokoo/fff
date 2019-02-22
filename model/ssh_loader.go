@@ -20,15 +20,6 @@ var (
 )
 
 var (
-	// ErrNeedPassword need password
-	ErrNeedPassword = errors.New("need password")
-
-	// ErrIncorrectPassword password is incorrect
-	ErrIncorrectPassword = errors.New("incorrect password")
-
-	// Password for use
-	Password = ""
-
 	sshCache = make(map[string]*sshc)
 )
 
@@ -156,19 +147,6 @@ func (*sshLoader) login(sc *sshconfig) (*ssh.Client, error) {
 		},
 	}
 	host := fmt.Sprintf("%s:%s", sc.host, sc.port)
-	pw := Password
-	if pw != "" {
-		Password = ""
-		cfg.Auth = []ssh.AuthMethod{ssh.Password(pw)}
-		conn, err := ssh.Dial("tcp", host, cfg)
-		if err != nil {
-			if ne, ok := err.(net.Error); ok && ne.Timeout() {
-				return nil, err
-			}
-			return nil, ErrIncorrectPassword
-		}
-		return conn, nil
-	}
 
 	if sc.key != "" {
 		buf, err := ioutil.ReadFile(sc.key)
@@ -193,7 +171,17 @@ func (*sshLoader) login(sc *sshconfig) (*ssh.Client, error) {
 		}
 	}
 
-	return nil, ErrNeedPassword
+	RequestCh <- &Request{fmt.Sprintf("Enter password for %s@%s", sc.user, sc.host), true}
+	pw := <-ResponseCh
+	if pw != "" {
+		cfg.Auth = []ssh.AuthMethod{ssh.Password(pw)}
+		conn, err := ssh.Dial("tcp", host, cfg)
+		if err != nil {
+			return nil, err
+		}
+		return conn, nil
+	}
+	return nil, errors.New("login fail")
 }
 
 func (*sshLoader) loadConfig(file FileItem) (*sshconfig, error) {
@@ -240,8 +228,6 @@ func (*sshLoader) loadConfig(file FileItem) (*sshconfig, error) {
 				return nil, err
 			}
 			sc.timeout = ti
-		case "password":
-			Password = value
 		}
 	}
 

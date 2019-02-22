@@ -190,9 +190,11 @@ var (
 		"ActionShell": limit(ModeNormal, func() { delay = func() error { return ac.shell() } }),
 	}
 
-	mode    = ModeNormal
-	kbd     = make(chan termbox.Event)
-	kbdQuit = make(chan bool)
+	mode       = ModeNormal
+	kbd        = make(chan termbox.Event)
+	kbdQuit    = make(chan bool)
+	normalCh   = make(chan termbox.Event)
+	normalQuit = make(chan bool)
 
 	currentKbds        = cfg.normalKbds
 	keyPrefixed        = false
@@ -360,7 +362,10 @@ func handleKeyEvent() {
 			case ModeJump:
 				kbdHandleJump(ev)
 			case ModeNormal:
-				kbdHandleNormal(ev)
+				select {
+				case normalCh <- ev:
+				default:
+				}
 			case ModeHelp:
 				ac.closeHelp()
 				restoreKbds()
@@ -370,11 +375,24 @@ func handleKeyEvent() {
 				kbdHandleTask(ev)
 			}
 		case <-kbdQuit:
+			normalQuit <- true
+			return
+		}
+	}
+}
+
+func handleNormalKbd() {
+	for {
+		select {
+		case ev := <-normalCh:
+			kbdHandleNormal(ev)
+		case <-normalQuit:
 			return
 		}
 	}
 }
 
 func kbdStart() {
+	go handleNormalKbd()
 	go handleKeyEvent()
 }

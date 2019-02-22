@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strings"
+
 	"github.com/jacokoo/fff/model"
 	"github.com/jacokoo/fff/ui"
 	"github.com/mattn/go-runewidth"
@@ -140,4 +142,26 @@ func inputDelete() {
 	}
 
 	ui.InputChangeEvent.Send([]string{inputer.Name(), inputer.Get()})
+}
+
+type requestHandler struct {
+	isPassword bool
+	*nameInputer
+}
+
+func (rh *requestHandler) Get() string {
+	if rh.isPassword {
+		return strings.Repeat("*", len(rh.name))
+	}
+	return rh.name
+}
+
+func handleUserRequest() {
+	for {
+		req := <-model.RequestCh
+		rh := &requestHandler{req.IsPassword, &nameInputer{req.Title, "", func(end string) {
+			model.ResponseCh <- end
+		}}}
+		enterInputMode(rh)
+	}
 }

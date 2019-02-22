@@ -125,6 +125,7 @@ func main() {
 	wo = model.NewWorkspace(maxGroups, wd, configDir)
 	ac = newAction()
 
+	go handleUserRequest()
 	go start(false)
 	for {
 		switch ev := <-quit; ev {

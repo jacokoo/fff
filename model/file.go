@@ -8,6 +8,20 @@ import (
 
 var _ = FileItem(new(fileItem))
 
+var (
+	// RequestCh request user input
+	RequestCh = make(chan *Request)
+
+	// ResponseCh user response for request
+	ResponseCh = make(chan string)
+)
+
+// Request content
+type Request struct {
+	Title      string
+	IsPassword bool
+}
+
 // FileItem represent a file, with absolute path
 type FileItem interface {
 	Path() string
