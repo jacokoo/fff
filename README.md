@@ -20,6 +20,8 @@ fff is a easy-to-use terminal file manager written in GO.
 * Rename/Create files and directories
 * Batch copy/move files/directories from any where you selected
 * Copy with progress indicator
+* Use SSH as local directory
+* Use archive file as local directory
 
 
 
@@ -179,7 +181,33 @@ Use `P` to paste clipped items to current directory and clear clip
 
 Use `M` to move clipped items to current directory and clear clip
 
+### SSH
 
+Create a text config file with extension `.ssh.fff`.
+
+Options:
+| Key | Description | Mandatory | Default value |
+| - | - | - | - |
+| host | the ssh host IP or domain name | true | |
+| user | the ssh user | false | root |
+| port | the ssh port | false | 22 |
+| key | absolute path of the private key file used for auth | false | |
+| shell | shell to use when spawn a new sub shell | false | bash |
+| editor | editor to use when edit remote file | false | vi |
+| pager | pager to use when view remote file | false | less |
+| timeout | ssh timeout | false | 3s (3 seconds) |
+
+e.g. :
+```
+host: 192.168.1.249
+user: jaco
+key: /Users/jaco/.ssh/id_rsa
+```
+
+Auth sequence:
+1. Use `key` file if supplied
+2. Use `ssh-agent`
+3. Ask for password
 
 ### Customize
 
@@ -191,13 +219,9 @@ All settings are placed in [config.yml](./config.yml), to override it, copy it t
 
 - [ ] Windows support
 
-- [x] Clip management: show clip list, delete
-
-- [x] Task management: show task details, cancel task
-
 - [ ] Archive/Unarchive support(progress visible, cancelable)
 
-- [ ] SSH/FTP integration
+- [ ] FTP integration
 
 - [ ] HDFS integration(Maybe)
 
