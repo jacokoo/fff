@@ -5,13 +5,6 @@ import (
 	"sync"
 )
 
-// Executor task executor
-type Executor interface {
-	Submit(string, TaskFunc) (Future, error)
-	Running() []RunningTask
-	Close() error
-}
-
 type item struct {
 	task  *task
 	state *taskState
@@ -68,10 +61,10 @@ func Fixed(max uint, errorWhenFull bool) Executor {
 	return e
 }
 
-func (e *limittedExecutor) Submit(name string, fn TaskFunc) (Future, error) {
+func (e *limittedExecutor) Submit(name string, fn TaskFunc) Future {
 	e.lock.RLock()
 	if e.ended {
-		return nil, errors.New("Executor is already closed")
+		return ErrorFuture(errors.New("Executor is already closed"))
 	}
 	e.lock.RUnlock()
 
@@ -79,19 +72,19 @@ func (e *limittedExecutor) Submit(name string, fn TaskFunc) (Future, error) {
 	item := &item{&task{name, fn}, ts}
 	if !e.errorWhenFull {
 		e.ch <- item
-		return ts.fu, nil
+		return ts.fu
 	}
 
 	select {
 	case e.ch <- item:
-		return ts.fu, nil
+		return ts.fu
 	default:
-		return nil, errors.New("task is full")
+		return ErrorFuture(errors.New("task is full"))
 	}
 }
 
-func (e *limittedExecutor) Running() []RunningTask {
-	re := make([]RunningTask, 0)
+func (e *limittedExecutor) Running() []Task {
+	re := make([]Task, 0)
 	for _, v := range e.running {
 		if v != nil {
 			re = append(re, v)
@@ -115,7 +108,7 @@ func (e *limittedExecutor) Close() error {
 
 	for _, v := range e.running {
 		if v != nil {
-			v.Future().Cancel()
+			_ = v.Future().Cancel()
 		}
 	}
 	return nil

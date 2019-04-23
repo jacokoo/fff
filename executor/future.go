@@ -8,8 +8,7 @@ import (
 var (
 	_ = Future(new(future))
 
-	// ErrorCancelled error to use when cancel task
-	ErrorCancelled = errors.New("Task is already cancelled")
+	errorCancelled = errors.New("Task is already cancelled")
 )
 
 type futureState uint16
@@ -22,31 +21,22 @@ const (
 	futureCompleted
 )
 
-// Future get value after complete
-type Future interface {
-	Get() (interface{}, error)
-	Cancel() error
-	OnComplete(func(interface{}, error)) Disposer
-	OnProgress(func(interface{})) Disposer
-}
-
 type future struct {
 	completeSource *eventSource
 	progressSource *eventSource
 
-	result     interface{}
-	error      error
-	blocker    chan bool
-	blockCount int
-	state      futureState
-	stateLock  *sync.RWMutex
+	result    interface{}
+	error     error
+	blocker   *sync.Cond
+	state     futureState
+	stateLock *sync.RWMutex
 }
 
 func newFuture() *future {
 	return &future{
 		completeSource: newEventSource(),
 		progressSource: newEventSource(),
-		blocker:        make(chan bool),
+		blocker:        sync.NewCond(new(sync.Mutex)),
 		stateLock:      new(sync.RWMutex),
 	}
 }
@@ -56,7 +46,7 @@ func (f *future) Get() (interface{}, error) {
 
 	if f.state == futureCancelled {
 		f.stateLock.Unlock()
-		return nil, ErrorCancelled
+		return nil, errorCancelled
 	}
 
 	if f.state == futureCompleted {
@@ -64,16 +54,17 @@ func (f *future) Get() (interface{}, error) {
 		return f.result, f.error
 	}
 
-	f.blockCount++
 	f.state = futureBlocked
 	f.stateLock.Unlock()
 
-	<-f.blocker
+	f.blocker.L.Lock()
+	f.blocker.Wait()
+	f.blocker.L.Unlock()
 
 	f.stateLock.RLock()
 	defer f.stateLock.RUnlock()
 	if f.state == futureCancelled {
-		return nil, ErrorCancelled
+		return nil, errorCancelled
 	}
 
 	if f.state == futureCompleted {
@@ -85,9 +76,9 @@ func (f *future) Get() (interface{}, error) {
 
 func (f *future) set(result interface{}, err error) {
 	f.stateLock.Lock()
-	defer f.stateLock.Unlock()
 
 	if f.state != futurePadding && f.state != futureBlocked {
+		f.stateLock.Unlock()
 		return
 	}
 	f.result = result
@@ -95,11 +86,10 @@ func (f *future) set(result interface{}, err error) {
 
 	old := f.state
 	f.state = futureCompleted
+	f.stateLock.Unlock()
 
 	if old == futureBlocked {
-		for i := 0; i < f.blockCount; i++ {
-			f.blocker <- true
-		}
+		f.blocker.Broadcast()
 	}
 
 	f.fireComplete()
@@ -107,24 +97,24 @@ func (f *future) set(result interface{}, err error) {
 
 func (f *future) Cancel() error {
 	f.stateLock.Lock()
-	defer f.stateLock.Unlock()
 
 	if f.state == futureCompleted {
+		f.stateLock.Unlock()
 		return errors.New("Task is already completed")
 	}
 
 	if f.state == futureCancelled {
+		f.stateLock.Unlock()
 		return nil
 	}
 
-	f.error = ErrorCancelled
+	f.error = errorCancelled
 	old := f.state
 	f.state = futureCancelled
+	f.stateLock.Unlock()
 
 	if old == futureBlocked {
-		for i := 0; i < f.blockCount; i++ {
-			f.blocker <- true
-		}
+		f.blocker.Broadcast()
 	}
 
 	f.fireComplete()
@@ -134,6 +124,9 @@ func (f *future) Cancel() error {
 
 // OnComplete set complete callback
 func (f *future) OnComplete(fn func(interface{}, error)) Disposer {
+	if f.state == futureCancelled || f.state == futureCompleted {
+		fn(f.result, f.error)
+	}
 	return f.completeSource.on(fn)
 }
 
@@ -154,4 +147,42 @@ func (f *future) fireProgress(p interface{}) {
 		fnn, _ := fn.(func(interface{}))
 		fnn(p)
 	})
+}
+
+type combinedFuture struct {
+	current Future
+	idx     int
+	items   []func(interface{}) Future
+	mx      *sync.Mutex
+	*future
+}
+
+func newCombinedFuture(start Future, fs []func(interface{}) Future) Future {
+	cf := &combinedFuture{start, 0, fs, new(sync.Mutex), newFuture()}
+	cf.doNext()
+	return cf
+}
+
+func (cf *combinedFuture) doNext() {
+	cf.current.OnComplete(func(data interface{}, err error) {
+		if err != nil {
+			cf.set(nil, err)
+			return
+		}
+		if cf.idx == len(cf.items) {
+			cf.set(data, nil)
+			return
+		}
+		cf.mx.Lock()
+		cf.current = cf.items[cf.idx](data)
+		cf.mx.Unlock()
+		cf.idx++
+		cf.doNext()
+	})
+}
+
+func (cf *combinedFuture) Cancel() error {
+	cf.mx.Lock()
+	defer cf.mx.Unlock()
+	return cf.current.Cancel()
 }

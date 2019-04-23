@@ -4,18 +4,6 @@ var (
 	_ = TaskState(new(taskState))
 )
 
-// TaskState state
-type TaskState interface {
-	IsCancelled() bool
-	Progress(interface{})
-}
-
-// RunningTask with return value
-type RunningTask interface {
-	Name() string
-	Future() Future
-}
-
 type taskState struct {
 	fu *future
 }
@@ -33,9 +21,6 @@ func (t *taskState) IsCancelled() bool {
 func (t *taskState) Progress(p interface{}) {
 	t.fu.fireProgress(p)
 }
-
-// TaskFunc the func to do the task
-type TaskFunc func(TaskState) (interface{}, error)
 
 type task struct {
 	name string

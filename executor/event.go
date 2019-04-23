@@ -4,11 +4,6 @@ import (
 	"sync"
 )
 
-// Disposer dispose something
-type Disposer interface {
-	Dispose()
-}
-
 type funcc struct {
 	fn interface{}
 }

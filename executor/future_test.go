@@ -70,7 +70,7 @@ func TestFutureCancel(t *testing.T) {
 	}
 
 	time.Sleep(time.Second)
-	f.Cancel()
+	_ = f.Cancel()
 	wg.Wait()
 
 	if f.state != futureCancelled {
