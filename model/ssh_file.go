@@ -97,7 +97,7 @@ func (sc *sshc) readDir(pp string) ([]FileItem, error) {
 		return nil, sc.error("target os is not supported")
 	}
 	buf, err := fn(sc, pp, true)
-	if buf == nil {
+	if err != nil && !strings.Contains(err.Error(), "exited with status") {
 		return nil, err
 	}
 	scan := bufio.NewScanner(buf)
@@ -126,7 +126,7 @@ func (sc *sshc) readFile(pp string) (FileItem, error) {
 		return nil, sc.error("target os is not supported")
 	}
 	buf, err := fn(sc, pp, false)
-	if buf == nil {
+	if err != nil && !strings.Contains(err.Error(), "exited with status") {
 		return nil, err
 	}
 	scan := bufio.NewScanner(buf)

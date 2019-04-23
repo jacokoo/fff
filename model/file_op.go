@@ -95,7 +95,7 @@ func (do *defaultOp) Open() error {
 		return fmt.Errorf("not supported")
 	}
 
-	return newCmd(fmt.Sprintf("%s %s", open, do.Path())).Start()
+	return newCmd(fmt.Sprintf(`%s "%s"`, open, do.Path())).Start()
 }
 
 type defaultFileOp struct {
@@ -111,11 +111,11 @@ func (df *defaultFileOp) Writer(flag int) (io.WriteCloser, error) {
 }
 
 func (df *defaultFileOp) Edit() error {
-	return newCmd(fmt.Sprintf("%s %s", editor, df.Path())).Run()
+	return newCmd(fmt.Sprintf(`%s "%s"`, editor, df.Path())).Run()
 }
 
 func (df *defaultFileOp) View() error {
-	return newCmd(fmt.Sprintf("%s %s", pager, df.Path())).Run()
+	return newCmd(fmt.Sprintf(`%s "%s"`, pager, df.Path())).Run()
 }
 
 type defaultDirOp struct {

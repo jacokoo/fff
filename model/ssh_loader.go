@@ -25,7 +25,7 @@ var (
 
 type sshconfig struct {
 	host, port           string
-	user, key            string
+	user, key, password  string
 	editor, pager, shell string
 	timeout              time.Duration
 }
@@ -112,6 +112,12 @@ func (sl *sshLoader) Create(origin FileItem) (FileItem, error) {
 	}
 	key := fmt.Sprintf("%s@%s", sc.user, sc.host)
 	ssc, ok := sshCache[key]
+	if ok {
+		_, err = ssc.exec("uname")
+		if err != nil {
+			ok = false
+		}
+	}
 	if !ok {
 		conn, err := sl.login(sc)
 		if err != nil {
@@ -147,6 +153,15 @@ func (*sshLoader) login(sc *sshconfig) (*ssh.Client, error) {
 		},
 	}
 	host := fmt.Sprintf("%s:%s", sc.host, sc.port)
+
+	if sc.password != "" {
+		cfg.Auth = []ssh.AuthMethod{ssh.Password(sc.password)}
+		conn, err := ssh.Dial("tcp", host, cfg)
+		if err != nil {
+			return nil, err
+		}
+		return conn, nil
+	}
 
 	if sc.key != "" {
 		buf, err := ioutil.ReadFile(sc.key)
@@ -228,6 +243,8 @@ func (*sshLoader) loadConfig(file FileItem) (*sshconfig, error) {
 				return nil, err
 			}
 			sc.timeout = ti
+		case "password":
+			sc.password = value
 		}
 	}
 
