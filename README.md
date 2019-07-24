@@ -2,6 +2,8 @@
 
 fff is a easy-to-use terminal file manager written in GO. 
 
+**This repo is now waiting for new features(error handling/generics) of golang 2**
+
 ![default](./screenshot/default.jpg)
 
 
