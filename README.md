@@ -218,7 +218,11 @@ All settings are placed in [config.yml](./config.yml), to override it, copy it t
 
 
 
-## Roadmap
+## TODOS
+
+- [ ] File duplicate in current folder
+
+- [ ] Operates run in background with a spinner and cancelable
 
 - [ ] Windows support
 
