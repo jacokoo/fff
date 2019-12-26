@@ -18,7 +18,7 @@ binding:
   # bindings for all mode
   all:
     "ctrl-q": ActionQuit                  # quit fff
-  
+
   # bindings for normal mode
   normal:
     "s":                                  # Prefix, Sort File
@@ -92,7 +92,7 @@ binding:
   clip:
     "w": ActionDeleteClipOnce             # Jump to delete clip once
     "W": ActionDeleteClip                 # Jump to delete clip
-  
+
   task:
     "w": ActionCancelTaskOnce             # Jump to cancel task once
     "W": ActionCancelTask                 # Jump to cancel task
@@ -114,6 +114,7 @@ color:
 editor: vi
 shell: sh
 pager: less
+single-column-mode: false
 `)
 
 var colorMap = map[string]termbox.Attribute{
@@ -129,15 +130,16 @@ var colorMap = map[string]termbox.Attribute{
 }
 
 type config struct {
-	normalKbds []*cmd
-	jumpKbds   []*cmd
-	inputKbds  []*cmd
-	clipKbds   []*cmd
-	taskKbds   []*cmd
-	colors     map[string]*ui.Color
-	editor     string
-	shell      string
-	pager      string
+	normalKbds       []*cmd
+	jumpKbds         []*cmd
+	inputKbds        []*cmd
+	clipKbds         []*cmd
+	taskKbds         []*cmd
+	colors           map[string]*ui.Color
+	editor           string
+	shell            string
+	pager            string
+	singleColumnMode bool
 }
 
 func (c *config) color(name string) *ui.Color {
@@ -259,6 +261,11 @@ func readYaml(ds []byte, cfg *config) {
 	vv, has = mp["pager"]
 	if has {
 		cfg.pager = vv.(string)
+	}
+
+	vv, has = mp["single-column-mode"]
+	if has && vv == true {
+		cfg.singleColumnMode = true
 	}
 }
 

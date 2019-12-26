@@ -2,7 +2,7 @@ binding:
   # bindings for all mode
   all:
     "ctrl-q": ActionQuit                  # quit fff
-  
+
   # bindings for normal mode
   normal:
     "s":                                  # Prefix, Sort File
@@ -76,7 +76,7 @@ binding:
   clip:
     "w": ActionDeleteClipOnce             # Jump to delete clip once
     "W": ActionDeleteClip                 # Jump to delete clip
-  
+
   task:
     "w": ActionCancelTaskOnce             # Jump to cancel task once
     "W": ActionCancelTask                 # Jump to cancel task
@@ -98,3 +98,4 @@ color:
 editor: vi
 shell: sh
 pager: less
+single-column-mode: false

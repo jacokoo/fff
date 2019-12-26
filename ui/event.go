@@ -172,17 +172,24 @@ func init() {
 			cos := g.Columns()
 			ui.Column.Clear()
 
-			if len(cos) == ui.fileCount() {
-				ui.Column.Shift(ui.isShowBookmark())
+			if len(cos) == 1 {
+				cc := ui.Column.Last()
+				gc := g.Current()
+				cc.item.(*FileList).setData(gc)
+				cc.showLine = !gc.IsShowDetail()
+			} else {
+				if len(cos) == ui.fileCount() {
+					ui.Column.Shift(ui.isShowBookmark())
+				}
+
+				last := ui.Column.Last().item.(*FileList)
+				last.setData(cos[len(cos)-2])
+				ui.Column.Last().showLine = !cos[len(cos)-2].IsShowDetail()
+
+				fl := newFileList(ZeroPoint, ui.Column.Height-1)
+				fl.setData(g.Current())
+				ui.Column.Add(fl)
 			}
-
-			last := ui.Column.Last().item.(*FileList)
-			last.setData(cos[len(cos)-2])
-			ui.Column.Last().showLine = !cos[len(cos)-2].IsShowDetail()
-
-			fl := newFileList(ZeroPoint, ui.Column.Height-1)
-			fl.setData(g.Current())
-			ui.Column.Add(fl)
 
 			ui.Column.Draw()
 			changeCurrent.dispatch(g.Current().Path())

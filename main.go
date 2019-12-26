@@ -40,8 +40,12 @@ func start(redraw bool) {
 		panic(err)
 	}
 
-	w, _ := termbox.Size()
-	maxColumns = w/columnWidth + 1
+	if cfg.singleColumnMode {
+		maxColumns = 1
+	} else {
+		w, _ := termbox.Size()
+		maxColumns = w/columnWidth + 1
+	}
 
 	if redraw {
 		gui.Redraw()
